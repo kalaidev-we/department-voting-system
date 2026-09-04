@@ -42,6 +42,7 @@ import { AdminAuditLogsPage } from './pages/admin/AdminAuditLogsPage';
 import { AdminSecurityEventsPage } from './pages/admin/AdminSecurityEventsPage';
 
 import { VoteReceipt, Election } from './lib/types';
+import { fetchStaffElections } from './services/electionService';
 import { Shield, WifiOff } from 'lucide-react';
 
 function ApplicationRouter() {
@@ -59,7 +60,7 @@ function ApplicationRouter() {
 
   // Navigation states for Student
   const [studentTab, setStudentTab] = useState<'home' | 'vote' | 'success' | 'apply'>('home');
-  const [activeElectionId, setActiveElectionId] = useState<string>('el-001');
+  const [activeElectionId, setActiveElectionId] = useState<string>('');
   const [activeReceipt, setActiveReceipt] = useState<VoteReceipt | null>(null);
 
   // Navigation states for Staff Admin
@@ -77,6 +78,29 @@ function ApplicationRouter() {
     | 'more'
   >('home');
   const [staffReceipt, setStaffReceipt] = useState<VoteReceipt | null>(null);
+  const [staffActiveElectionId, setStaffActiveElectionId] = useState<string>('');
+
+  // Auto-resolve the active election ID from the database for staff & admin voting
+  useEffect(() => {
+    async function resolveActiveElection() {
+      try {
+        const elections = await fetchStaffElections();
+        const active = elections.find((e) => e.status === 'ACTIVE') || elections[0];
+        if (active) {
+          setStaffActiveElectionId(active.id);
+          // Also update student's activeElectionId if it hasn't been set yet
+          if (!activeElectionId) {
+            setActiveElectionId(active.id);
+          }
+        }
+      } catch {
+        // Ignore
+      }
+    }
+    if (isAuthenticated && profile) {
+      resolveActiveElection();
+    }
+  }, [isAuthenticated, profile]);
 
   // Navigation states for Super Admin
   const [adminTab, setAdminTab] = useState<
@@ -385,7 +409,7 @@ function ApplicationRouter() {
     if (adminTab === 'admin_vote') {
       return wrapWithOfflineBanner(
         <VotingPage
-          electionId={activeElectionId || 'el-001'}
+          electionId={staffActiveElectionId || activeElectionId}
           onBack={() => setAdminTab('home')}
           onVoteSuccess={(receipt) => {
             setAdminReceipt(receipt);
@@ -514,7 +538,7 @@ function ApplicationRouter() {
     if (staffTab === 'staff_vote') {
       return wrapWithOfflineBanner(
         <VotingPage
-          electionId="el-001"
+          electionId={staffActiveElectionId || activeElectionId}
           onBack={() => setStaffTab('home')}
           onVoteSuccess={(receipt) => {
             setStaffReceipt(receipt);

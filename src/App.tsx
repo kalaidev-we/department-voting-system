@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthenticateWithRedirectCallback } from '@clerk/clerk-react';
 import { LoginPage } from './pages/LoginPage';
 import { DomainErrorScreen } from './components/auth/DomainErrorScreen';
 import { ProfileCompletionPage } from './pages/ProfileCompletionPage';
@@ -90,10 +91,9 @@ function ApplicationRouter() {
   const [adminReceipt, setAdminReceipt] = useState<VoteReceipt | null>(null);
   const [selectedElectionForEdit, setSelectedElectionForEdit] = useState<Election | null>(null);
 
-  // Handle SSO redirect cleanup if needed
+  // Handle Clerk SSO redirect callback
   if (window.location.pathname.startsWith('/sso-callback')) {
-    window.location.replace('/');
-    return null;
+    return <AuthenticateWithRedirectCallback signUpForceRedirectUrl="/" signInForceRedirectUrl="/" />;
   }
 
   // 1. Show professional Domain Rejection Screen if email domain was rejected

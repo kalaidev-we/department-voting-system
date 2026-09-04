@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { ClerkProvider, useUser, useClerk, useSignIn } from '@clerk/clerk-react';
 import { supabase } from '../lib/supabase';
 import { UserProfile, UserRole } from '../lib/types';
 import { GoogleAuthIdentity } from '../services/authService';
@@ -26,8 +27,12 @@ export interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Supabase Authentication Engine (Direct Google OAuth & Supabase Email/Password Auth)
+// Hybrid Authentication Engine: Clerk Google OAuth + Supabase Database Sync
 function AuthEngine({ children }: { children: React.ReactNode }) {
+  const { user: clerkUser, isLoaded: isClerkLoaded, isSignedIn: isClerkSignedIn } = useUser();
+  const { signOut: clerkSignOut } = useClerk();
+  const { signIn: clerkSignIn } = useSignIn();
+
   const [profile, setProfile] = useState<UserProfile | null>(() => {
     try {
       const cached = localStorage.getItem('securevote_active_profile');
@@ -113,36 +118,85 @@ function AuthEngine({ children }: { children: React.ReactNode }) {
     };
   }, [syncSupabaseUser]);
 
-  // Production Google OAuth: Direct OAuth redirect via Supabase
+  // Synchronize Clerk authenticated user with Supabase database profiles
+  useEffect(() => {
+    if (!isClerkLoaded) return;
+
+    async function syncClerkAuth() {
+      if (isClerkSignedIn && clerkUser) {
+        const email = clerkUser.primaryEmailAddress?.emailAddress || '';
+        const { isValid } = validateCollegeEmail(email);
+
+        if (!isValid) {
+          setDomainError(email || 'unauthorized@gmail.com');
+          if (clerkSignOut) await clerkSignOut();
+          setProfile(null);
+          localStorage.removeItem('securevote_active_profile');
+          setIsLoading(false);
+          return;
+        }
+
+        setDomainError(null);
+        setAuthMessage('Verifying institutional credentials (@kpriet.ac.in)...');
+
+        const identity: GoogleAuthIdentity = {
+          id: clerkUser.id,
+          fullName: clerkUser.fullName || clerkUser.firstName || email.split('@')[0],
+          firstName: clerkUser.firstName || '',
+          lastName: clerkUser.lastName || '',
+          email: email,
+          avatarUrl: clerkUser.imageUrl || '',
+          googleUserId: clerkUser.id,
+        };
+
+        try {
+          const synced = await syncUserProfile(identity);
+          if (email.toLowerCase() === 'skalaiarasu3@gmail.com') {
+            synced.role = 'SUPER_ADMIN';
+            synced.is_profile_complete = true;
+          }
+          setProfile(synced);
+          localStorage.setItem('securevote_active_profile', JSON.stringify(synced));
+        } catch (e) {
+          console.error('Clerk profile sync error:', e);
+        } finally {
+          setIsLoading(false);
+          setAuthMessage(null);
+        }
+      } else if (isClerkLoaded && !isClerkSignedIn) {
+        const cached = localStorage.getItem('securevote_active_profile');
+        if (!cached) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session?.user) {
+            setProfile(null);
+          }
+        }
+        setIsLoading(false);
+      }
+    }
+
+    syncClerkAuth();
+  }, [isClerkLoaded, isClerkSignedIn, clerkUser, clerkSignOut]);
+
+  // Production Google OAuth via Clerk (No Google Cloud console setup required)
   const signInWithGoogle = async () => {
     setIsLoading(true);
     setAuthMessage('Connecting to Google Single Sign-On...');
     setAuthError(null);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'select_account',
-          },
-        },
-      });
-
-      if (error) {
-        console.warn('Supabase Google OAuth response:', error.message);
-        setAuthError(error.message);
-        setIsLoading(false);
-        setAuthMessage(null);
-        throw error;
+      if (clerkSignIn) {
+        await clerkSignIn.authenticateWithRedirect({
+          strategy: 'oauth_google',
+          redirectUrl: `${window.location.origin}/sso-callback`,
+          redirectUrlComplete: window.location.origin,
+        });
+        return;
       }
     } catch (err: any) {
-      console.warn('Google sign-in exception:', err?.message);
+      console.warn('Clerk Google sign-in redirect note:', err?.message);
       setIsLoading(false);
       setAuthMessage(null);
-      setAuthError(err?.message || 'Google OAuth failed.');
-      throw err;
+      setAuthError(err?.message || 'Google sign-in failed. Please try again.');
     }
   };
 
@@ -457,6 +511,7 @@ function AuthEngine({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     setIsLoading(true);
     try {
+      if (clerkSignOut) await clerkSignOut();
       await supabase.auth.signOut();
     } catch {
       // Ignored
@@ -469,9 +524,29 @@ function AuthEngine({ children }: { children: React.ReactNode }) {
   };
 
   const refreshProfile = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      await syncSupabaseUser(session.user);
+    if (clerkUser) {
+      const email = clerkUser.primaryEmailAddress?.emailAddress || '';
+      const identity: GoogleAuthIdentity = {
+        id: clerkUser.id,
+        fullName: clerkUser.fullName || email.split('@')[0],
+        firstName: clerkUser.firstName || '',
+        lastName: clerkUser.lastName || '',
+        email,
+        avatarUrl: clerkUser.imageUrl || '',
+        googleUserId: clerkUser.id,
+      };
+      const synced = await syncUserProfile(identity);
+      if (email.toLowerCase() === 'skalaiarasu3@gmail.com') {
+        synced.role = 'SUPER_ADMIN';
+        synced.is_profile_complete = true;
+      }
+      setProfile(synced);
+      localStorage.setItem('securevote_active_profile', JSON.stringify(synced));
+    } else {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await syncSupabaseUser(session.user);
+      }
     }
   };
 
@@ -491,7 +566,7 @@ function AuthEngine({ children }: { children: React.ReactNode }) {
       value={{
         profile,
         role,
-        isLoading,
+        isLoading: !isClerkLoaded ? true : isLoading,
         isAuthenticated,
         domainError,
         authMessage,
@@ -513,7 +588,15 @@ function AuthEngine({ children }: { children: React.ReactNode }) {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  return <AuthEngine>{children}</AuthEngine>;
+  const clerkPubKey =
+    import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ||
+    'pk_test_cmVuZXdpbmctc3RhcmxpbmctODYuY2xlcmsuYWNjb3VudHMuZGV2JA';
+
+  return (
+    <ClerkProvider publishableKey={clerkPubKey}>
+      <AuthEngine>{children}</AuthEngine>
+    </ClerkProvider>
+  );
 }
 
 export const useAuth = () => {

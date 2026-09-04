@@ -51,7 +51,7 @@ export function VotingPage({ electionId = 'el-001', onBack, onVoteSuccess }: Vot
         setSelectedCandidateId(list[0].id);
       }
 
-      const voted = await hasStudentVoted(electionId, profile?.student_id || profile?.id || '26SCL03');
+      const voted = await hasStudentVoted(electionId, profile?.id || profile?.student_id || '26SCL03');
       setAlreadyVoted(voted);
     }
     load();
@@ -76,7 +76,7 @@ export function VotingPage({ electionId = 'el-001', onBack, onVoteSuccess }: Vot
     const result = await submitVote({
       electionId,
       candidateId: selectedCandidate.id,
-      studentId: profile?.student_id || profile?.id || '26SCL03',
+      studentId: profile?.id || profile?.student_id || '26SCL03',
       electionTitle: election?.title || 'Campus Election',
       candidateName: selectedCandidate.name,
     });

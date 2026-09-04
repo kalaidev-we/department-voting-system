@@ -80,7 +80,9 @@ export function CandidateApplyPage({ onBack, onSuccess }: CandidateApplyPageProp
     const result = await submitCandidateApplication({
       election_id: electionId,
       election_title: selectedElection?.title || 'Campus Election',
-      student_id: profile?.student_id || '26SCL03',
+      student_id: profile?.student_id || profile?.id || '26SCL03',
+      user_id: profile?.id,
+      roll_number: profile?.student_id || '26SCL03',
       full_name: profile?.full_name || 'KPRIET Student',
       email: profile?.email || '26scl03@kpriet.ac.in',
       department: profile?.department_name || 'Cybersecurity Department',

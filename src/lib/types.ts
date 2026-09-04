@@ -96,6 +96,7 @@ export interface CandidateApplication {
   election_id: string;
   election_title: string;
   student_id: string;
+  roll_number?: string;
   full_name: string;
   email: string;
   department: string;
@@ -104,9 +105,12 @@ export interface CandidateApplication {
   slogan: string;
   manifesto: string;
   key_promises: string[];
+  symbol?: string;
+  photo_url?: string;
   status: 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED';
   review_notes?: string;
   reviewed_by?: string;
+  reviewed_at?: string;
   submitted_at: string;
 }
 

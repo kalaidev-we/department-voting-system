@@ -8,53 +8,109 @@ export async function fetchCandidateApplications(): Promise<CandidateApplication
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && data && data.length > 0) {
-      return data as any;
+    if (!error && data) {
+      return data.map((item: any) => ({
+        id: item.id,
+        election_id: item.election_id,
+        election_title: item.election_title || 'Campus Election',
+        student_id: item.roll_number || item.student_id || '',
+        full_name: item.full_name || 'Student Candidate',
+        email: item.email || '',
+        department: item.department || '',
+        year: item.year || '',
+        cgpa: item.cgpa ? parseFloat(item.cgpa) : 0,
+        slogan: item.slogan || '',
+        manifesto: item.manifesto || '',
+        key_promises: Array.isArray(item.key_promises) ? item.key_promises : [],
+        symbol: item.symbol || '🛡️ Shield',
+        status: item.status || 'SUBMITTED',
+        submitted_at: item.created_at || item.submitted_at || new Date().toISOString(),
+        reviewed_by: item.reviewed_by,
+        reviewed_at: item.reviewed_at,
+        review_notes: item.review_notes,
+      }));
     }
   } catch (err) {
-    console.warn('Applications table fetch fallback:', err);
-  }
-
-  const stored = localStorage.getItem('candidate_applications');
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch {}
+    console.error('Failed to query candidate applications from Supabase:', err);
   }
 
   return [];
 }
 
-export async function submitCandidateApplication(payload: Omit<CandidateApplication, 'id' | 'status' | 'submitted_at'>): Promise<{ success: boolean; data?: CandidateApplication; error?: string }> {
-  const newApp: CandidateApplication = {
-    ...payload,
-    id: `app-${Date.now()}`,
-    status: 'SUBMITTED',
-    submitted_at: new Date().toISOString(),
-  };
-
+export async function submitCandidateApplication(payload: {
+  election_id: string;
+  election_title?: string;
+  student_id: string;
+  user_id?: string;
+  roll_number?: string;
+  full_name: string;
+  email: string;
+  department: string;
+  year?: string;
+  cgpa?: number;
+  slogan: string;
+  manifesto: string;
+  key_promises?: string[];
+  symbol?: string;
+}): Promise<{ success: boolean; data?: CandidateApplication; error?: string }> {
   try {
-    const { data, error } = await supabase.from('candidate_applications').insert([{
-      election_id: newApp.election_id,
-      student_id: newApp.student_id,
-      slogan: newApp.slogan,
-      manifesto: newApp.manifesto,
+    const insertPayload: any = {
+      election_id: payload.election_id,
+      student_id: payload.student_id,
+      roll_number: payload.roll_number || payload.student_id,
+      full_name: payload.full_name,
+      email: payload.email,
+      department: payload.department,
+      year: payload.year || '1st Year',
+      cgpa: payload.cgpa || 8.0,
+      election_title: payload.election_title || 'Campus Election',
+      slogan: payload.slogan,
+      manifesto: payload.manifesto,
+      key_promises: payload.key_promises || [],
+      symbol: payload.symbol || '🛡️ Shield',
       status: 'SUBMITTED',
-    }]).select().single();
+      created_at: new Date().toISOString(),
+    };
 
-    if (!error && data) {
-      // Success from db
+    if (payload.user_id) {
+      insertPayload.user_id = payload.user_id;
     }
-  } catch (err) {
-    console.warn('Candidate application DB insert fallback:', err);
+
+    const { data, error } = await supabase
+      .from('candidate_applications')
+      .insert([insertPayload])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Candidate application database insert error:', error.message);
+      return { success: false, error: error.message };
+    }
+
+    return {
+      success: true,
+      data: {
+        id: data.id,
+        election_id: data.election_id,
+        election_title: data.election_title,
+        student_id: data.roll_number || data.student_id,
+        full_name: data.full_name,
+        email: data.email,
+        department: data.department,
+        year: data.year,
+        cgpa: data.cgpa ? parseFloat(data.cgpa) : 0,
+        slogan: data.slogan,
+        manifesto: data.manifesto,
+        key_promises: data.key_promises || [],
+        symbol: data.symbol,
+        status: data.status,
+        submitted_at: data.created_at,
+      },
+    };
+  } catch (err: any) {
+    console.error('Failed to submit candidate application:', err);
+    return { success: false, error: err.message || 'Failed to submit application' };
   }
-
-  // Update local storage cache
-  const list = await fetchCandidateApplications();
-  const updated = [newApp, ...list];
-  localStorage.setItem('candidate_applications', JSON.stringify(updated));
-
-  return { success: true, data: newApp };
 }
 
 export async function reviewApplication(
@@ -62,9 +118,9 @@ export async function reviewApplication(
   newStatus: 'APPROVED' | 'REJECTED',
   reviewNotes: string,
   reviewerName: string
-): Promise<{ success: boolean }> {
+): Promise<{ success: boolean; error?: string }> {
   try {
-    const { data: updatedApp } = await supabase
+    const { data: updatedApp, error } = await supabase
       .from('candidate_applications')
       .update({
         status: newStatus,
@@ -75,13 +131,18 @@ export async function reviewApplication(
       .select()
       .maybeSingle();
 
-    // If approved, automatically register as an official candidate for the election
+    if (error) {
+      console.error('Error updating candidate application status:', error.message);
+      return { success: false, error: error.message };
+    }
+
+    // If approved, automatically register as an official candidate in the elections roster
     if (newStatus === 'APPROVED' && updatedApp) {
       await supabase.from('candidates').insert([
         {
           election_id: updatedApp.election_id,
           name: updatedApp.full_name || 'Approved Candidate',
-          student_id: updatedApp.student_id,
+          student_id: updatedApp.roll_number || updatedApp.student_id,
           department: updatedApp.department || null,
           slogan: updatedApp.slogan || null,
           manifesto: updatedApp.manifesto || null,
@@ -93,22 +154,10 @@ export async function reviewApplication(
         },
       ]);
     }
-  } catch (err) {
-    console.warn('DB update application fallback:', err);
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('Failed to review application:', err);
+    return { success: false, error: err.message || 'Failed to review application' };
   }
-
-  const list = await fetchCandidateApplications();
-  const updated = list.map((app) =>
-    app.id === applicationId
-      ? {
-          ...app,
-          status: newStatus,
-          review_notes: reviewNotes,
-          reviewed_by: reviewerName,
-        }
-      : app
-  );
-  localStorage.setItem('candidate_applications', JSON.stringify(updated));
-
-  return { success: true };
 }

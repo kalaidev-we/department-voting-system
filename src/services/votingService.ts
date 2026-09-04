@@ -43,7 +43,7 @@ export async function fetchCandidates(electionId?: string): Promise<Candidate[]>
   return [];
 }
 
-// Add candidate directly by staff
+// Add candidate directly by staff or super admin
 export async function addStaffCandidate(payload: {
   election_id: string;
   name: string;
@@ -86,27 +86,40 @@ export async function addStaffCandidate(payload: {
   }
 }
 
-// Check if a student has already voted in an election
+// Check if a student or staff has already voted in an election
 export async function hasStudentVoted(electionId: string, studentId: string): Promise<boolean> {
-  // Check local session ledger first for immediate reactivity
+  // Check local session storage first for immediate reactivity
   const localKey = `vote_cast_${electionId}_${studentId}`;
   if (localStorage.getItem(localKey)) {
     return true;
   }
 
   try {
-    const { data, error } = await supabase
+    // 1. Check election_eligibility table
+    const { data: eligibility } = await supabase
       .from('election_eligibility')
       .select('has_voted')
       .eq('election_id', electionId)
       .eq('student_id', studentId)
       .maybeSingle();
 
-    if (!error && data) {
-      return !!data.has_voted;
+    if (eligibility && eligibility.has_voted) {
+      return true;
+    }
+
+    // 2. Check vote_receipts table
+    const { data: receipt } = await supabase
+      .from('vote_receipts')
+      .select('id')
+      .eq('election_id', electionId)
+      .eq('student_id', studentId)
+      .maybeSingle();
+
+    if (receipt) {
+      return true;
     }
   } catch (err) {
-    console.warn('Voter eligibility check fallback:', err);
+    console.warn('Voter participation check error:', err);
   }
 
   return false;
@@ -126,7 +139,7 @@ export function getStoredReceipt(electionId: string, studentId: string): VoteRec
   return null;
 }
 
-// Atomic vote submission
+// Atomic vote submission: Updates database (anonymous_votes, vote_ledger, vote_receipts, candidates, elections, eligibility)
 export async function submitVote(params: {
   electionId: string;
   candidateId: string;
@@ -144,7 +157,7 @@ export async function submitVote(params: {
 
   const now = new Date().toISOString();
 
-  // Try database RPC first if Supabase is connected
+  // 1. Primary Method: Execute atomic database RPC submit_vote
   try {
     const { data, error } = await supabase.rpc('submit_vote', {
       p_election_id: electionId,
@@ -161,7 +174,7 @@ export async function submitVote(params: {
         candidate_name: candidateName,
         timestamp: data.timestamp || now,
         sequence_number: data.sequence_number || 1,
-        ledger_hash: data.receipt_id,
+        ledger_hash: data.ledger_hash || data.receipt_id,
       };
 
       // Persist in local storage
@@ -170,11 +183,15 @@ export async function submitVote(params: {
 
       return { success: true, receipt };
     }
+
+    if (error) {
+      console.warn('Database RPC submit_vote error, proceeding to table update fallback:', error.message);
+    }
   } catch (rpcErr) {
-    console.warn('RPC submit_vote fallback to direct table insertion:', rpcErr);
+    console.warn('RPC submit_vote call failed, proceeding to direct table updates:', rpcErr);
   }
 
-  // Direct table insertion fallback
+  // 2. Direct Table Updates Fallback: Updates all database tables directly
   try {
     const randomSalt = crypto.randomUUID();
     const verificationCode = randomSalt.slice(0, 8).toUpperCase();
@@ -189,38 +206,58 @@ export async function submitVote(params: {
 
     const seqNum = (count || 0) + 1;
 
-    // 1. Insert anonymous vote
-    await supabase.from('anonymous_votes').insert([
+    // A. Insert anonymous vote into DB
+    const { error: voteErr } = await supabase.from('anonymous_votes').insert([
       {
         election_id: electionId,
         candidate_id: candidateId,
+        integrity_hash: ballotHash,
         vote_hash: ballotHash,
-        created_at: now,
+        cast_at: now,
       },
     ]);
+    if (voteErr) console.warn('anonymous_votes direct insert warning:', voteErr.message);
 
-    // 2. Insert vote ledger block
-    await supabase.from('vote_ledger').insert([
+    // B. Insert block into vote_ledger in DB
+    const { error: ledgerErr } = await supabase.from('vote_ledger').insert([
       {
         sequence_number: seqNum,
         election_id: electionId,
         ballot_hash: ballotHash,
+        previous_hash: ledgerHash,
         block_hash: ledgerHash,
         timestamp: now,
       },
     ]);
+    if (ledgerErr) console.warn('vote_ledger direct insert warning:', ledgerErr.message);
 
-    // 3. Mark eligibility has_voted
-    await supabase.from('election_eligibility').upsert([
+    // C. Upsert voter participation in election_eligibility
+    const { error: eligErr } = await supabase.from('election_eligibility').upsert([
       {
         election_id: electionId,
         student_id: studentId,
+        is_eligible: true,
         has_voted: true,
         voted_at: now,
       },
     ]);
+    if (eligErr) console.warn('election_eligibility direct update warning:', eligErr.message);
 
-    // 4. Update candidate votes count
+    // D. Insert digital receipt into vote_receipts
+    const { error: rcptErr } = await supabase.from('vote_receipts').upsert([
+      {
+        receipt_hash: receiptToken,
+        election_id: electionId,
+        student_id: studentId,
+        verification_code: verificationCode,
+        election_title: electionTitle,
+        candidate_name: candidateName,
+        created_at: now,
+      },
+    ]);
+    if (rcptErr) console.warn('vote_receipts direct insert warning:', rcptErr.message);
+
+    // E. Increment candidate votes count
     const { data: cand } = await supabase
       .from('candidates')
       .select('votes_count')
@@ -232,6 +269,20 @@ export async function submitVote(params: {
         .from('candidates')
         .update({ votes_count: (cand.votes_count || 0) + 1 })
         .eq('id', candidateId);
+    }
+
+    // F. Increment election votes count
+    const { data: el } = await supabase
+      .from('elections')
+      .select('votes_count')
+      .eq('id', electionId)
+      .maybeSingle();
+
+    if (el) {
+      await supabase
+        .from('elections')
+        .update({ votes_count: (el.votes_count || 0) + 1 })
+        .eq('id', electionId);
     }
 
     const receipt: VoteReceipt = {
@@ -251,6 +302,7 @@ export async function submitVote(params: {
 
     return { success: true, receipt };
   } catch (genErr: any) {
+    console.error('Direct voting DB update failed:', genErr);
     return { success: false, error: genErr.message || 'Failed to seal vote in cryptographic ledger.' };
   }
 }

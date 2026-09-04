@@ -23,13 +23,15 @@ import { CandidateApplyPage } from './pages/student/CandidateApplyPage';
 
 // Super Admin Pages
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
+import { AdminElectionsPage } from './pages/admin/AdminElectionsPage';
+import { AdminEditElectionPage } from './pages/admin/AdminEditElectionPage';
 import { AdminStaffPage } from './pages/admin/AdminStaffPage';
 import { AdminAddStaffPage } from './pages/admin/AdminAddStaffPage';
 import { AdminStudentsPage } from './pages/admin/AdminStudentsPage';
 import { AdminAuditLogsPage } from './pages/admin/AdminAuditLogsPage';
 import { AdminSecurityEventsPage } from './pages/admin/AdminSecurityEventsPage';
 
-import { VoteReceipt } from './lib/types';
+import { VoteReceipt, Election } from './lib/types';
 import { Shield } from 'lucide-react';
 
 function ApplicationRouter() {
@@ -68,8 +70,17 @@ function ApplicationRouter() {
 
   // Navigation states for Super Admin
   const [adminTab, setAdminTab] = useState<
-    'home' | 'admin_staff' | 'admin_add_staff' | 'admin_students' | 'admin_audit' | 'admin_security'
+    | 'home'
+    | 'admin_elections'
+    | 'admin_create_election'
+    | 'admin_edit_election'
+    | 'admin_staff'
+    | 'admin_add_staff'
+    | 'admin_students'
+    | 'admin_audit'
+    | 'admin_security'
   >('home');
+  const [selectedElectionForEdit, setSelectedElectionForEdit] = useState<Election | null>(null);
 
   // Handle Clerk SSO Callback (after Google redirects back)
   if (window.location.pathname.startsWith('/sso-callback')) {
@@ -148,6 +159,35 @@ function ApplicationRouter() {
 
   // 5. Super Admin Governance Flow
   if (role === 'SUPER_ADMIN') {
+    if (adminTab === 'admin_elections') {
+      return (
+        <AdminElectionsPage
+          onBack={() => setAdminTab('home')}
+          onCreateElection={() => setAdminTab('admin_create_election')}
+          onEditElection={(el) => {
+            setSelectedElectionForEdit(el);
+            setAdminTab('admin_edit_election');
+          }}
+        />
+      );
+    }
+    if (adminTab === 'admin_create_election') {
+      return (
+        <CreateElectionPage
+          onBack={() => setAdminTab('admin_elections')}
+          onCreated={() => setAdminTab('admin_elections')}
+        />
+      );
+    }
+    if (adminTab === 'admin_edit_election' && selectedElectionForEdit) {
+      return (
+        <AdminEditElectionPage
+          election={selectedElectionForEdit}
+          onBack={() => setAdminTab('admin_elections')}
+          onUpdated={() => setAdminTab('admin_elections')}
+        />
+      );
+    }
     if (adminTab === 'admin_staff') {
       return (
         <AdminStaffPage

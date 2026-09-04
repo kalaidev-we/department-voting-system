@@ -97,15 +97,21 @@ export function AdminDashboardPage({ onNavigateTab }: AdminDashboardPageProps) {
             <span className="text-[10px] text-emerald-600 font-bold">● Live Database</span>
           </div>
 
-          <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-1">
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2">
+          <div
+            onClick={() => onNavigateTab('admin_elections')}
+            className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-1 hover:border-indigo-400 hover:shadow-md transition-all cursor-pointer group"
+          >
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
               <Vote className="w-4 h-4" />
             </div>
             <span className="text-xs text-slate-400 font-medium">Active Elections</span>
             <div className="text-lg font-black text-slate-900">
               {loadingMetrics ? '...' : metrics.activeElections}
             </div>
-            <span className="text-[10px] text-blue-600 font-bold">● Active Status</span>
+            <span className="text-[10px] text-blue-600 font-bold flex items-center gap-0.5">
+              <span>Manage Polls</span>
+              <ArrowRight className="w-2.5 h-2.5" />
+            </span>
           </div>
 
           <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-1">
@@ -137,8 +143,25 @@ export function AdminDashboardPage({ onNavigateTab }: AdminDashboardPageProps) {
             Administrative Consoles
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {/* Console 1: Faculty & Staff Management */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {/* Console 1: Elections Management (Full CRUD) */}
+            <div
+              onClick={() => onNavigateTab('admin_elections')}
+              className="p-4 rounded-2xl bg-white border border-indigo-200/80 hover:border-indigo-500 hover:shadow-md transition-all cursor-pointer space-y-2 group bg-gradient-to-br from-white to-indigo-50/20"
+            >
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Vote className="w-5 h-5" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900 flex items-center justify-between">
+                <span>Elections & Ballots (CRUD)</span>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all" />
+              </h3>
+              <p className="text-xs text-slate-500 leading-snug">
+                Create new polls, edit parameters, toggle status, and purge campus elections.
+              </p>
+            </div>
+
+            {/* Console 2: Faculty & Staff Management */}
             <div
               onClick={() => onNavigateTab('admin_staff')}
               className="p-4 rounded-2xl bg-white border border-slate-200/80 hover:border-indigo-400 hover:shadow-md transition-all cursor-pointer space-y-2 group"
@@ -155,7 +178,7 @@ export function AdminDashboardPage({ onNavigateTab }: AdminDashboardPageProps) {
               </p>
             </div>
 
-            {/* Console 2: Student Roster */}
+            {/* Console 3: Student Roster */}
             <div
               onClick={() => onNavigateTab('admin_students')}
               className="p-4 rounded-2xl bg-white border border-slate-200/80 hover:border-indigo-400 hover:shadow-md transition-all cursor-pointer space-y-2 group"
@@ -172,7 +195,7 @@ export function AdminDashboardPage({ onNavigateTab }: AdminDashboardPageProps) {
               </p>
             </div>
 
-            {/* Console 3: Audit Logs & Hash Chain */}
+            {/* Console 4: Audit Logs & Hash Chain */}
             <div
               onClick={() => onNavigateTab('admin_audit')}
               className="p-4 rounded-2xl bg-white border border-slate-200/80 hover:border-indigo-400 hover:shadow-md transition-all cursor-pointer space-y-2 group"
@@ -189,7 +212,7 @@ export function AdminDashboardPage({ onNavigateTab }: AdminDashboardPageProps) {
               </p>
             </div>
 
-            {/* Console 4: Security & Domain Guard */}
+            {/* Console 5: Security & Domain Guard */}
             <div
               onClick={() => onNavigateTab('admin_security')}
               className="p-4 rounded-2xl bg-white border border-slate-200/80 hover:border-indigo-400 hover:shadow-md transition-all cursor-pointer space-y-2 group"

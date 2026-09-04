@@ -109,22 +109,114 @@ export async function syncUserProfile(identity: GoogleAuthIdentity): Promise<Use
     updated_at: new Date().toISOString(),
   };
 
-  // 4. Upsert/sync profile record to Supabase if possible (safe from client)
+  const isValidUuid = (val?: string) =>
+    Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val));
+
+  // 4. Upsert/sync profile record to Supabase and automatically register as eligible voter
   try {
-    const { error: upsertErr } = await supabase
+    const profilePayload: any = {
+      full_name: profileObj.full_name,
+      first_name: profileObj.first_name || null,
+      last_name: profileObj.last_name || null,
+      email: profileObj.email,
+      avatar_url: profileObj.avatar_url,
+      role: profileObj.role,
+      student_id: profileObj.student_id || null,
+      department_name: profileObj.department_name || null,
+      year: profileObj.year || null,
+      academic_batch: profileObj.academic_batch || null,
+      section: profileObj.section || 'A',
+      is_active: true,
+      is_profile_complete: true,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (existingProfile?.id) {
+      profilePayload.id = existingProfile.id;
+    } else if (isValidUuid(authUserId)) {
+      profilePayload.id = authUserId;
+    }
+
+    const { data: savedProfile, error: upsertErr } = await supabase
       .from('profiles')
-      .upsert({
-        id: profileObj.id,
-        full_name: profileObj.full_name,
-        email: profileObj.email,
-        avatar_url: profileObj.avatar_url,
-        role: profileObj.role,
-        is_active: profileObj.is_active,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'id' });
+      .upsert(profilePayload, { onConflict: 'email' })
+      .select()
+      .maybeSingle();
 
     if (upsertErr) {
-      console.warn('Profiles upsert notification (RLS protected):', upsertErr.message);
+      console.warn('Profiles upsert notification:', upsertErr.message);
+    }
+
+    const resolvedProfileId =
+      savedProfile?.id || existingProfile?.id || (isValidUuid(profileObj.id) ? profileObj.id : null);
+
+    if (resolvedProfileId) {
+      profileObj.id = resolvedProfileId;
+    }
+
+    // 5. Automatically register student as eligible voter in students & election_eligibility tables
+    if (detectedRole === 'STUDENT' && resolvedProfileId) {
+      const cleanStudentId = profileObj.student_id || email.split('@')[0].toUpperCase();
+      const parsed = parseStudentId(cleanStudentId);
+      const assignedYear = parsed.isLateralEntry ? '2nd Year' : (profileObj.year || parsed.suggestedYear || '1st Year');
+      const admissionType = parsed.isLateralEntry ? 'LATERAL' : 'REGULAR';
+
+      // Primary Attempt: Use RPC register_student_voter (Security Definer)
+      try {
+        await supabase.rpc('register_student_voter', {
+          p_profile_id: resolvedProfileId,
+          p_student_id: cleanStudentId,
+          p_full_name: profileObj.full_name,
+          p_email: profileObj.email,
+          p_department: profileObj.department_name || parsed.departmentName || 'Cybersecurity Department',
+          p_year: assignedYear,
+          p_batch: profileObj.academic_batch || parsed.admissionBatch || 'Batch of 2026',
+          p_admission_type: admissionType,
+        });
+      } catch {
+        // Fallback to direct table inserts
+      }
+
+      // Direct Table Fallback: students table
+      try {
+        await supabase.from('students').upsert({
+          id: resolvedProfileId,
+          student_id: cleanStudentId,
+          full_name: profileObj.full_name,
+          email: profileObj.email,
+          department_name: profileObj.department_name || parsed.departmentName || 'Cybersecurity Department',
+          year: assignedYear,
+          academic_batch: profileObj.academic_batch || parsed.admissionBatch || 'Batch of 2026',
+          admission_type: admissionType,
+          is_eligible_to_vote: true,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'student_id' });
+      } catch {
+        // Ignored
+      }
+
+      // Automatically enroll in all active elections
+      try {
+        const { data: activeElections } = await supabase
+          .from('elections')
+          .select('id')
+          .eq('status', 'ACTIVE');
+
+        if (activeElections && activeElections.length > 0) {
+          const enrollments = activeElections.map((el: any) => ({
+            election_id: el.id,
+            student_id: resolvedProfileId,
+            is_eligible: true,
+            has_voted: false,
+          }));
+
+          await supabase
+            .from('election_eligibility')
+            .upsert(enrollments, { onConflict: 'election_id,student_id' });
+        }
+      } catch {
+        // Ignored
+      }
     }
   } catch (err) {
     console.warn('Could not persist profile in database:', err);
@@ -144,19 +236,35 @@ export async function completeStudentProfile(
   }
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Attempt update to Supabase
-    const { error } = await supabase
-      .from('students')
-      .upsert({
-        id: profileId,
-        full_name: data.studentId,
-        section: data.section,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'id' });
+    const cleanStudentId = data.studentId.trim().toUpperCase();
+    const parsed = parseStudentId(cleanStudentId);
+    const assignedYear = parsed.isLateralEntry ? '2nd Year' : (data.year || parsed.suggestedYear || '1st Year');
+    const admissionType = parsed.isLateralEntry ? 'LATERAL' : 'REGULAR';
 
-    if (error) {
-      console.warn('Student table update (RLS):', error.message);
-    }
+    await Promise.allSettled([
+      supabase.from('profiles').update({
+        student_id: cleanStudentId,
+        department_name: data.department,
+        academic_batch: data.academicBatch,
+        year: assignedYear,
+        section: data.section,
+        is_profile_complete: true,
+        updated_at: new Date().toISOString(),
+      }).eq('id', profileId),
+
+      supabase.from('students').upsert({
+        id: profileId,
+        student_id: cleanStudentId,
+        department_name: data.department,
+        academic_batch: data.academicBatch,
+        year: assignedYear,
+        section: data.section,
+        admission_type: admissionType,
+        is_eligible_to_vote: true,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'student_id' }),
+    ]);
+
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message };

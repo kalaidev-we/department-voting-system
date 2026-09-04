@@ -245,7 +245,19 @@ export async function updateElectionStatus(
 
 export async function deleteElection(id: string): Promise<{ success: boolean; error?: string }> {
   try {
-    // 1. Proactively clean up dependent rows to prevent foreign key errors
+    // 1. Primary Attempt: Use RPC delete_election_cascade (Security Definer - runs as admin)
+    try {
+      const { data: rpcData, error: rpcErr } = await supabase.rpc('delete_election_cascade', {
+        p_election_id: id,
+      });
+      if (!rpcErr && rpcData && rpcData.success) {
+        return { success: true };
+      }
+    } catch {
+      // Proceed to direct table fallback
+    }
+
+    // 2. Proactively clean up dependent rows to prevent foreign key errors
     await Promise.allSettled([
       supabase.from('election_eligibility').delete().eq('election_id', id),
       supabase.from('candidate_applications').delete().eq('election_id', id),
@@ -257,16 +269,28 @@ export async function deleteElection(id: string): Promise<{ success: boolean; er
       supabase.from('vote_receipts').delete().eq('election_id', id),
     ]);
 
-    // 2. Delete the election row
-    const { error } = await supabase
+    // 3. Delete the election row
+    const { data, error } = await supabase
       .from('elections')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .select();
 
     if (error) {
       console.error('Error deleting election:', error.message);
       return { success: false, error: error.message };
     }
+
+    if (!data || data.length === 0) {
+      console.warn('Election delete returned 0 affected rows. Executing force delete via RPC.');
+      const { error: forceErr } = await supabase.rpc('delete_election_cascade', {
+        p_election_id: id,
+      });
+      if (forceErr) {
+        return { success: false, error: forceErr.message };
+      }
+    }
+
     return { success: true };
   } catch (err: any) {
     console.error('Failed to delete election:', err);

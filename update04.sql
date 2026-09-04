@@ -26,6 +26,136 @@ CREATE POLICY "profiles_anon_select" ON profiles FOR SELECT TO anon, authenticat
 CREATE POLICY "profiles_anon_insert" ON profiles FOR INSERT TO anon, authenticated WITH CHECK (TRUE);
 CREATE POLICY "profiles_anon_update" ON profiles FOR UPDATE TO anon, authenticated USING (TRUE) WITH CHECK (TRUE);
 
+-- 1C. STUDENTS TABLE RLS & ELIGIBLE VOTER PERMISSIONS
+ALTER TABLE students ADD COLUMN IF NOT EXISTS full_name VARCHAR(255);
+ALTER TABLE students ADD COLUMN IF NOT EXISTS email VARCHAR(255);
+ALTER TABLE students ADD COLUMN IF NOT EXISTS department_name VARCHAR(255);
+ALTER TABLE students ADD COLUMN IF NOT EXISTS year VARCHAR(50) DEFAULT '1st Year';
+ALTER TABLE students ADD COLUMN IF NOT EXISTS academic_batch VARCHAR(100);
+ALTER TABLE students ADD COLUMN IF NOT EXISTS admission_type VARCHAR(50) DEFAULT 'REGULAR';
+ALTER TABLE students ADD COLUMN IF NOT EXISTS is_eligible_to_vote BOOLEAN DEFAULT TRUE;
+ALTER TABLE students ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "students_anon_select" ON students;
+DROP POLICY IF EXISTS "students_anon_insert" ON students;
+DROP POLICY IF EXISTS "students_anon_update" ON students;
+CREATE POLICY "students_anon_select" ON students FOR SELECT TO anon, authenticated USING (TRUE);
+CREATE POLICY "students_anon_insert" ON students FOR INSERT TO anon, authenticated WITH CHECK (TRUE);
+CREATE POLICY "students_anon_update" ON students FOR UPDATE TO anon, authenticated USING (TRUE) WITH CHECK (TRUE);
+
+-- 1D. ELECTION ELIGIBILITY TABLE RLS
+ALTER TABLE election_eligibility ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "election_eligibility_anon_select" ON election_eligibility;
+DROP POLICY IF EXISTS "election_eligibility_anon_insert" ON election_eligibility;
+DROP POLICY IF EXISTS "election_eligibility_anon_update" ON election_eligibility;
+CREATE POLICY "election_eligibility_anon_select" ON election_eligibility FOR SELECT TO anon, authenticated USING (TRUE);
+CREATE POLICY "election_eligibility_anon_insert" ON election_eligibility FOR INSERT TO anon, authenticated WITH CHECK (TRUE);
+CREATE POLICY "election_eligibility_anon_update" ON election_eligibility FOR UPDATE TO anon, authenticated USING (TRUE) WITH CHECK (TRUE);
+
+-- 1E. RPC: AUTOMATIC VOTER REGISTRATION ON USER SIGNUP (SECURITY DEFINER)
+CREATE OR REPLACE FUNCTION register_student_voter(
+    p_profile_id UUID,
+    p_student_id VARCHAR(50),
+    p_full_name VARCHAR(255),
+    p_email VARCHAR(255),
+    p_department VARCHAR(255),
+    p_year VARCHAR(50),
+    p_batch VARCHAR(100),
+    p_admission_type VARCHAR(50) DEFAULT 'REGULAR'
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_el RECORD;
+BEGIN
+    -- 1. Ensure student profile is complete in profiles
+    UPDATE profiles
+    SET 
+        full_name = COALESCE(p_full_name, full_name),
+        student_id = COALESCE(p_student_id, student_id),
+        department_name = COALESCE(p_department, department_name),
+        year = COALESCE(p_year, year),
+        academic_batch = COALESCE(p_batch, academic_batch),
+        is_active = TRUE,
+        is_profile_complete = TRUE,
+        updated_at = NOW()
+    WHERE id = p_profile_id OR email = LOWER(p_email);
+
+    -- 2. Upsert into students table with eligible to vote flag
+    INSERT INTO students (
+        id,
+        student_id,
+        full_name,
+        email,
+        department_name,
+        year,
+        academic_batch,
+        admission_type,
+        is_eligible_to_vote,
+        created_at,
+        updated_at
+    )
+    VALUES (
+        p_profile_id,
+        p_student_id,
+        p_full_name,
+        LOWER(p_email),
+        p_department,
+        COALESCE(p_year, '1st Year'),
+        COALESCE(p_batch, 'Batch of 2026'),
+        COALESCE(p_admission_type, 'REGULAR'),
+        TRUE,
+        NOW(),
+        NOW()
+    )
+    ON CONFLICT (student_id) DO UPDATE SET
+        full_name = EXCLUDED.full_name,
+        email = EXCLUDED.email,
+        department_name = EXCLUDED.department_name,
+        year = EXCLUDED.year,
+        academic_batch = EXCLUDED.academic_batch,
+        admission_type = EXCLUDED.admission_type,
+        is_eligible_to_vote = TRUE,
+        updated_at = NOW();
+
+    -- 3. Automatically register voter in all active elections
+    FOR v_el IN SELECT id FROM elections WHERE status = 'ACTIVE' LOOP
+        INSERT INTO election_eligibility (
+            election_id,
+            student_id,
+            is_eligible,
+            has_voted,
+            created_at
+        )
+        VALUES (
+            v_el.id,
+            p_profile_id,
+            TRUE,
+            FALSE,
+            NOW()
+        )
+        ON CONFLICT (election_id, student_id) DO UPDATE SET
+            is_eligible = TRUE;
+    END LOOP;
+
+    RETURN jsonb_build_object(
+        'success', TRUE,
+        'student_id', p_student_id,
+        'profile_id', p_profile_id,
+        'is_eligible_to_vote', TRUE
+    );
+EXCEPTION WHEN OTHERS THEN
+    RETURN jsonb_build_object(
+        'success', FALSE,
+        'error', SQLERRM
+    );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION register_student_voter TO anon, authenticated;
+
 -- 2. CANDIDATE APPLICATIONS SCHEMA FIXES
 -- Drop restrictive foreign keys and convert user_id & student_id to VARCHAR so Clerk IDs (user_...) are accepted
 
@@ -138,7 +268,69 @@ CREATE POLICY "Candidates update votes count" ON candidates FOR UPDATE TO anon, 
 
 ALTER TABLE elections ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Elections update votes count" ON elections;
-CREATE POLICY "Elections update votes count" ON elections FOR UPDATE TO anon, authenticated USING (TRUE) WITH CHECK (TRUE);
+DROP POLICY IF EXISTS "elections_select_all" ON elections;
+DROP POLICY IF EXISTS "elections_insert_all" ON elections;
+DROP POLICY IF EXISTS "elections_update_all" ON elections;
+DROP POLICY IF EXISTS "elections_delete_all" ON elections;
+
+CREATE POLICY "elections_select_all" ON elections FOR SELECT TO anon, authenticated USING (TRUE);
+CREATE POLICY "elections_insert_all" ON elections FOR INSERT TO anon, authenticated WITH CHECK (TRUE);
+CREATE POLICY "elections_update_all" ON elections FOR UPDATE TO anon, authenticated USING (TRUE) WITH CHECK (TRUE);
+CREATE POLICY "elections_delete_all" ON elections FOR DELETE TO anon, authenticated USING (TRUE);
+
+-- Cascading delete permissions for all related tables
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'election_results') THEN
+        ALTER TABLE election_results ENABLE ROW LEVEL SECURITY;
+        DROP POLICY IF EXISTS "election_results_all" ON election_results;
+        CREATE POLICY "election_results_all" ON election_results FOR ALL TO anon, authenticated USING (TRUE) WITH CHECK (TRUE);
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'election_staff_assignments') THEN
+        ALTER TABLE election_staff_assignments ENABLE ROW LEVEL SECURITY;
+        DROP POLICY IF EXISTS "election_staff_assignments_all" ON election_staff_assignments;
+        CREATE POLICY "election_staff_assignments_all" ON election_staff_assignments FOR ALL TO anon, authenticated USING (TRUE) WITH CHECK (TRUE);
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'vote_ledger') THEN
+        ALTER TABLE vote_ledger ENABLE ROW LEVEL SECURITY;
+        DROP POLICY IF EXISTS "vote_ledger_delete_all" ON vote_ledger;
+        CREATE POLICY "vote_ledger_delete_all" ON vote_ledger FOR ALL TO anon, authenticated USING (TRUE) WITH CHECK (TRUE);
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'anonymous_votes') THEN
+        ALTER TABLE anonymous_votes ENABLE ROW LEVEL SECURITY;
+        DROP POLICY IF EXISTS "anonymous_votes_delete_all" ON anonymous_votes;
+        CREATE POLICY "anonymous_votes_delete_all" ON anonymous_votes FOR ALL TO anon, authenticated USING (TRUE) WITH CHECK (TRUE);
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'vote_receipts') THEN
+        ALTER TABLE vote_receipts ENABLE ROW LEVEL SECURITY;
+        DROP POLICY IF EXISTS "vote_receipts_delete_all" ON vote_receipts;
+        CREATE POLICY "vote_receipts_delete_all" ON vote_receipts FOR ALL TO anon, authenticated USING (TRUE) WITH CHECK (TRUE);
+    END IF;
+END $$;
+
+-- CASCADE DELETE RPC FUNCTION (SECURITY DEFINER)
+CREATE OR REPLACE FUNCTION delete_election_cascade(p_election_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    DELETE FROM election_eligibility WHERE election_id = p_election_id;
+    DELETE FROM candidate_applications WHERE election_id = p_election_id;
+    DELETE FROM candidates WHERE election_id = p_election_id;
+    DELETE FROM election_staff_assignments WHERE election_id = p_election_id;
+    DELETE FROM election_results WHERE election_id = p_election_id;
+    DELETE FROM anonymous_votes WHERE election_id = p_election_id;
+    DELETE FROM vote_ledger WHERE election_id = p_election_id;
+    DELETE FROM vote_receipts WHERE election_id = p_election_id;
+    DELETE FROM elections WHERE id = p_election_id;
+
+    RETURN jsonb_build_object('success', TRUE, 'election_id', p_election_id);
+EXCEPTION WHEN OTHERS THEN
+    RETURN jsonb_build_object('success', FALSE, 'error', SQLERRM);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION delete_election_cascade TO anon, authenticated;
 
 -- 4. ATOMIC CANDIDATE NOMINATION RPC FUNCTION
 CREATE OR REPLACE FUNCTION submit_candidate_nomination(
@@ -309,6 +501,42 @@ WHERE (c.student_id = p.student_id OR c.email = p.email)
 UPDATE elections
 SET eligible_voters_count = GREATEST(votes_count, 1)
 WHERE eligible_voters_count = 23;
+
+-- 8. RETROACTIVELY ENROLL ALL EXISTING STUDENTS AS ELIGIBLE VOTERS
+INSERT INTO students (
+    id,
+    student_id,
+    full_name,
+    email,
+    department_name,
+    year,
+    academic_batch,
+    admission_type,
+    is_eligible_to_vote
+)
+SELECT 
+    p.id,
+    COALESCE(p.student_id, SPLIT_PART(p.email, '@', 1)),
+    p.full_name,
+    p.email,
+    COALESCE(p.department_name, 'Cybersecurity Department'),
+    COALESCE(p.year, CASE WHEN p.student_id ~* '^[0-9]{2}[A-Za-z]{2,4}L[0-9]+$' THEN '2nd Year' ELSE '1st Year' END),
+    COALESCE(p.academic_batch, 'Batch of 2026'),
+    CASE WHEN p.student_id ~* '^[0-9]{2}[A-Za-z]{2,4}L[0-9]+$' THEN 'LATERAL' ELSE 'REGULAR' END,
+    TRUE
+FROM profiles p
+WHERE p.role = 'STUDENT'
+ON CONFLICT (student_id) DO UPDATE SET
+    is_eligible_to_vote = TRUE;
+
+-- Ensure all students are registered in active election eligibility
+INSERT INTO election_eligibility (election_id, student_id, is_eligible, has_voted)
+SELECT e.id, p.id, TRUE, FALSE
+FROM elections e
+CROSS JOIN profiles p
+WHERE e.status = 'ACTIVE' AND p.role = 'STUDENT'
+ON CONFLICT (election_id, student_id) DO UPDATE SET is_eligible = TRUE;
+
 
 
 

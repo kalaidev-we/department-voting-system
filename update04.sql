@@ -200,3 +200,55 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION submit_candidate_nomination TO anon, authenticated;
+
+-- 5. CANDIDATES TABLE REPAIR & AUTOMATIC SYNC FROM APPROVED APPLICATIONS
+ALTER TABLE candidates ENABLE ROW LEVEL SECURITY;
+DO $$
+BEGIN
+    ALTER TABLE candidates DROP CONSTRAINT IF EXISTS candidates_student_id_fkey;
+    ALTER TABLE candidates ALTER COLUMN student_id TYPE VARCHAR(255);
+    ALTER TABLE candidates ADD COLUMN IF NOT EXISTS email VARCHAR(255);
+    ALTER TABLE candidates ADD COLUMN IF NOT EXISTS department VARCHAR(255);
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DROP POLICY IF EXISTS "candidates_select_all" ON candidates;
+DROP POLICY IF EXISTS "candidates_insert_all" ON candidates;
+DROP POLICY IF EXISTS "candidates_update_all" ON candidates;
+DROP POLICY IF EXISTS "candidates_delete_all" ON candidates;
+
+CREATE POLICY "candidates_select_all" ON candidates FOR SELECT TO anon, authenticated USING (TRUE);
+CREATE POLICY "candidates_insert_all" ON candidates FOR INSERT TO anon, authenticated WITH CHECK (TRUE);
+CREATE POLICY "candidates_update_all" ON candidates FOR UPDATE TO anon, authenticated USING (TRUE) WITH CHECK (TRUE);
+CREATE POLICY "candidates_delete_all" ON candidates FOR DELETE TO anon, authenticated USING (TRUE);
+
+-- Automatically copy all approved candidate applications into candidates table
+INSERT INTO candidates (
+    id,
+    election_id,
+    name,
+    student_id,
+    department,
+    slogan,
+    manifesto,
+    photo_url,
+    symbol,
+    votes_count
+)
+SELECT 
+    ca.id,
+    ca.election_id,
+    ca.full_name,
+    ca.student_id,
+    ca.department,
+    ca.slogan,
+    ca.manifesto,
+    COALESCE(ca.photo_url, 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80'),
+    COALESCE(ca.symbol, '🛡️ Shield'),
+    0
+FROM candidate_applications ca
+WHERE ca.status = 'APPROVED'
+AND NOT EXISTS (
+    SELECT 1 FROM candidates c WHERE c.id = ca.id OR (c.election_id = ca.election_id AND c.student_id = ca.student_id)
+);
+

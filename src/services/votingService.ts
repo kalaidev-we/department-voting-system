@@ -9,9 +9,12 @@ async function sha256Hex(message: string): Promise<string> {
   return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Fetch candidates for an election
+// Fetch candidates for an election (combines candidates table + approved candidate applications)
 export async function fetchCandidates(electionId?: string): Promise<Candidate[]> {
+  const candidateMap = new Map<string, Candidate>();
+
   try {
+    // 1. Fetch from candidates table
     let query = supabase.from('candidates').select('*').order('created_at', { ascending: false });
     if (electionId && electionId !== 'all') {
       query = query.eq('election_id', electionId);
@@ -19,29 +22,126 @@ export async function fetchCandidates(electionId?: string): Promise<Candidate[]>
     const { data, error } = await query;
 
     if (!error && data) {
-      return data.map((item: any) => ({
-        id: item.id,
-        election_id: item.election_id,
-        name: item.name,
-        email: item.email || '',
-        student_id: item.student_id || '',
-        department: item.department || '',
-        slogan: item.slogan || '',
-        manifesto: item.manifesto || '',
-        photo_url: item.photo_url || '',
-        symbol: item.symbol || '🛡️',
-        votes_count: item.votes_count || 0,
-        created_at: item.created_at,
-      }));
+      data.forEach((item: any) => {
+        candidateMap.set(item.id, {
+          id: item.id,
+          election_id: item.election_id,
+          name: item.name,
+          email: item.email || '',
+          student_id: item.roll_number || item.student_id || '',
+          department: item.department || '',
+          slogan: item.slogan || '',
+          manifesto: item.manifesto || '',
+          photo_url: item.photo_url || '',
+          symbol: item.symbol || '🛡️ Shield',
+          votes_count: item.votes_count || 0,
+          created_at: item.created_at,
+        });
+      });
     }
-    if (error) {
-      console.error('Error fetching candidates from DB:', error.message);
+
+    // 2. Query approved candidate applications from candidate_applications table
+    let appQuery = supabase
+      .from('candidate_applications')
+      .select('*')
+      .eq('status', 'APPROVED')
+      .order('created_at', { ascending: false });
+
+    if (electionId && electionId !== 'all') {
+      appQuery = appQuery.eq('election_id', electionId);
     }
+
+    const { data: appData, error: appErr } = await appQuery;
+
+    if (!appErr && appData) {
+      appData.forEach((app: any) => {
+        // Prevent duplicate by matching roll number or email or name within the same election
+        const alreadyExists = Array.from(candidateMap.values()).some(
+          (c) =>
+            c.election_id === app.election_id &&
+            ((app.email && c.email?.toLowerCase() === app.email.toLowerCase()) ||
+              (app.student_id && c.student_id === app.student_id) ||
+              c.name.toLowerCase() === app.full_name?.toLowerCase())
+        );
+
+        if (!alreadyExists) {
+          const candidateObj: Candidate = {
+            id: app.id,
+            election_id: app.election_id,
+            name: app.full_name,
+            email: app.email || '',
+            student_id: app.roll_number || app.student_id || '',
+            department: app.department || '',
+            slogan: app.slogan || '',
+            manifesto: app.manifesto || '',
+            photo_url:
+              app.photo_url ||
+              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+            symbol: app.symbol || '🛡️ Shield',
+            votes_count: 0,
+            created_at: app.created_at,
+          };
+          candidateMap.set(app.id, candidateObj);
+
+          // Proactively try to sync into candidates table in the background
+          supabase.from('candidates').insert([{
+            id: app.id,
+            election_id: app.election_id,
+            name: app.full_name,
+            student_id: app.roll_number || app.student_id || null,
+            department: app.department || null,
+            slogan: app.slogan || null,
+            manifesto: app.manifesto || null,
+            photo_url: app.photo_url || null,
+            symbol: app.symbol || '🛡️ Shield',
+            votes_count: 0,
+          }]).then(() => {}, () => {});
+        }
+      });
+    }
+
+    // 3. Check local storage approved applications
+    try {
+      const localApps: any[] = JSON.parse(localStorage.getItem('securevote_candidate_applications') || '[]');
+      localApps
+        .filter((a) => a.status === 'APPROVED' && (!electionId || electionId === 'all' || a.election_id === electionId))
+        .forEach((app) => {
+          const alreadyExists = Array.from(candidateMap.values()).some(
+            (c) =>
+              c.election_id === app.election_id &&
+              ((app.email && c.email?.toLowerCase() === app.email.toLowerCase()) ||
+                (app.student_id && c.student_id === app.student_id) ||
+                c.name.toLowerCase() === app.full_name?.toLowerCase())
+          );
+          if (!alreadyExists) {
+            candidateMap.set(app.id, {
+              id: app.id,
+              election_id: app.election_id,
+              name: app.full_name,
+              email: app.email || '',
+              student_id: app.roll_number || app.student_id || '',
+              department: app.department || '',
+              slogan: app.slogan || '',
+              manifesto: app.manifesto || '',
+              photo_url:
+                app.photo_url ||
+                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+              symbol: app.symbol || '🛡️ Shield',
+              votes_count: 0,
+              created_at: app.submitted_at || new Date().toISOString(),
+            });
+          }
+        });
+    } catch {
+      // Ignored
+    }
+
+    return Array.from(candidateMap.values());
   } catch (err) {
-    console.error('Candidates table query failed:', err);
+    console.error('Candidates fetch failed:', err);
   }
 
-  return [];
+  return Array.from(candidateMap.values());
 }
 
 // Add candidate directly by staff or super admin

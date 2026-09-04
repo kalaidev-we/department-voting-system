@@ -43,9 +43,20 @@ function AuthEngine({ children }: { children: React.ReactNode }) {
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [clerkTimedOut, setClerkTimedOut] = useState<boolean>(false);
   const [domainError, setDomainError] = useState<string | null>(null);
   const [authMessage, setAuthMessage] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!isClerkLoaded) {
+        console.warn('Clerk initialization fallback triggered');
+        setClerkTimedOut(true);
+      }
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [isClerkLoaded]);
 
   // Helper to load and sync a Supabase authenticated user
   const syncSupabaseUser = useCallback(async (user: any) => {
@@ -576,7 +587,7 @@ function AuthEngine({ children }: { children: React.ReactNode }) {
       value={{
         profile,
         role,
-        isLoading: !isClerkLoaded ? true : isLoading,
+        isLoading: (!isClerkLoaded && !clerkTimedOut) ? true : isLoading,
         isAuthenticated,
         domainError,
         authMessage,

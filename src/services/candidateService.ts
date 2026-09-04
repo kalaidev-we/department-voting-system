@@ -237,21 +237,45 @@ export async function reviewApplication(
 
     // If approved, automatically register as an official candidate in the elections roster
     if (newStatus === 'APPROVED' && updatedApp) {
-      await supabase.from('candidates').insert([
-        {
-          election_id: updatedApp.election_id,
-          name: updatedApp.full_name || 'Approved Candidate',
-          student_id: updatedApp.roll_number || updatedApp.student_id,
-          department: updatedApp.department || null,
-          slogan: updatedApp.slogan || null,
-          manifesto: updatedApp.manifesto || null,
-          photo_url:
-            updatedApp.photo_url ||
-            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
-          symbol: updatedApp.symbol || '🛡️ Shield',
-          votes_count: 0,
-        },
-      ]);
+      try {
+        await supabase.from('candidates').insert([
+          {
+            id: updatedApp.id,
+            election_id: updatedApp.election_id,
+            name: updatedApp.full_name || 'Approved Candidate',
+            student_id: updatedApp.roll_number || updatedApp.student_id || null,
+            department: updatedApp.department || null,
+            slogan: updatedApp.slogan || null,
+            manifesto: updatedApp.manifesto || null,
+            photo_url:
+              updatedApp.photo_url ||
+              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+            symbol: updatedApp.symbol || '🛡️ Shield',
+            votes_count: 0,
+          },
+        ]);
+      } catch (insertErr) {
+        console.warn('Candidate sync note:', insertErr);
+      }
+    }
+
+    // Also update local storage cache if present
+    try {
+      const stored = JSON.parse(localStorage.getItem('securevote_candidate_applications') || '[]');
+      const updatedList = stored.map((item: any) =>
+        item.id === applicationId
+          ? {
+              ...item,
+              status: newStatus,
+              review_notes: reviewNotes,
+              reviewed_by: reviewerName,
+              reviewed_at: new Date().toISOString(),
+            }
+          : item
+      );
+      localStorage.setItem('securevote_candidate_applications', JSON.stringify(updatedList));
+    } catch {
+      // Ignored
     }
 
     return { success: true };

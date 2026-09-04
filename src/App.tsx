@@ -74,12 +74,21 @@ function ApplicationRouter() {
     | 'admin_elections'
     | 'admin_create_election'
     | 'admin_edit_election'
+    | 'admin_candidates'
+    | 'admin_add_candidate'
+    | 'admin_applications'
+    | 'admin_analytics'
+    | 'admin_reports'
+    | 'admin_staff_console'
+    | 'admin_vote'
+    | 'admin_receipt'
     | 'admin_staff'
     | 'admin_add_staff'
     | 'admin_students'
     | 'admin_audit'
     | 'admin_security'
   >('home');
+  const [adminReceipt, setAdminReceipt] = useState<VoteReceipt | null>(null);
   const [selectedElectionForEdit, setSelectedElectionForEdit] = useState<Election | null>(null);
 
   // Handle Clerk SSO Callback (after Google redirects back)
@@ -157,8 +166,24 @@ function ApplicationRouter() {
     );
   }
 
-  // 5. Super Admin Governance Flow
+  // 5. Super Admin Governance Flow (All Staff + Institutional Governance Capabilities)
   if (role === 'SUPER_ADMIN') {
+    const handleAdminNavigation = (tab: string) => {
+      if (tab === 'home' || tab === 'admin_home') setAdminTab('home');
+      else if (tab === 'elections') setAdminTab('admin_elections');
+      else if (tab === 'create_election') setAdminTab('admin_create_election');
+      else if (tab === 'candidates') setAdminTab('admin_candidates');
+      else if (tab === 'add_candidate') setAdminTab('admin_add_candidate');
+      else if (tab === 'applications' || tab === 'more') setAdminTab('admin_applications');
+      else if (tab === 'analytics') setAdminTab('admin_analytics');
+      else if (tab === 'reports') setAdminTab('admin_reports');
+      else if (tab === 'staff_vote' || tab === 'admin_vote') setAdminTab('admin_vote');
+      else if (tab === 'staff_receipt' || tab === 'admin_receipt') setAdminTab('admin_receipt');
+      else if (tab === 'admin_staff_console') setAdminTab('admin_staff_console');
+      else setAdminTab(tab as any);
+    };
+
+    // Election Governance & CRUD
     if (adminTab === 'admin_elections') {
       return (
         <AdminElectionsPage
@@ -188,6 +213,89 @@ function ApplicationRouter() {
         />
       );
     }
+
+    // Staff Capabilities for Super Admin: Candidates Management
+    if (adminTab === 'admin_candidates') {
+      return (
+        <StaffCandidatesPage
+          onNavigateTab={handleAdminNavigation}
+        />
+      );
+    }
+    if (adminTab === 'admin_add_candidate') {
+      return (
+        <StaffAddCandidatePage
+          onBack={() => setAdminTab('admin_candidates')}
+          onSuccess={() => setAdminTab('admin_candidates')}
+        />
+      );
+    }
+
+    // Staff Capabilities for Super Admin: Nomination Applications
+    if (adminTab === 'admin_applications') {
+      return (
+        <StaffApplicationsPage
+          onNavigateTab={handleAdminNavigation}
+        />
+      );
+    }
+
+    // Staff Capabilities for Super Admin: Analytics & Live Tallies
+    if (adminTab === 'admin_analytics') {
+      return (
+        <StaffAnalyticsPage
+          onNavigateTab={handleAdminNavigation}
+        />
+      );
+    }
+
+    // Staff Capabilities for Super Admin: Reports & CSV Export
+    if (adminTab === 'admin_reports') {
+      return (
+        <StaffReportsPage
+          onNavigateTab={handleAdminNavigation}
+        />
+      );
+    }
+
+    // Staff Capabilities for Super Admin: Staff Dashboard Console View
+    if (adminTab === 'admin_staff_console') {
+      return (
+        <StaffDashboardPage
+          onNavigateTab={handleAdminNavigation}
+          onViewStaffReceipt={(receipt) => {
+            setAdminReceipt(receipt);
+            setAdminTab('admin_receipt');
+          }}
+        />
+      );
+    }
+
+    // Super Admin Casting Vote
+    if (adminTab === 'admin_vote') {
+      return (
+        <VotingPage
+          electionId={activeElectionId || 'el-001'}
+          onBack={() => setAdminTab('home')}
+          onVoteSuccess={(receipt) => {
+            setAdminReceipt(receipt);
+            setAdminTab('admin_receipt');
+          }}
+        />
+      );
+    }
+
+    // Super Admin Viewing Digital Receipt
+    if (adminTab === 'admin_receipt' && adminReceipt) {
+      return (
+        <VoteSuccessPage
+          receipt={adminReceipt}
+          onDone={() => setAdminTab('home')}
+        />
+      );
+    }
+
+    // Super Admin Institutional Governance Consoles
     if (adminTab === 'admin_staff') {
       return (
         <AdminStaffPage
@@ -215,7 +323,7 @@ function ApplicationRouter() {
     }
     return (
       <AdminDashboardPage
-        onNavigateTab={(tab) => setAdminTab(tab as any)}
+        onNavigateTab={handleAdminNavigation}
       />
     );
   }

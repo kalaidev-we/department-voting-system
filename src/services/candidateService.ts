@@ -64,14 +64,35 @@ export async function reviewApplication(
   reviewerName: string
 ): Promise<{ success: boolean }> {
   try {
-    await supabase
+    const { data: updatedApp } = await supabase
       .from('candidate_applications')
       .update({
         status: newStatus,
         review_notes: reviewNotes,
         reviewed_at: new Date().toISOString(),
       })
-      .eq('id', applicationId);
+      .eq('id', applicationId)
+      .select()
+      .maybeSingle();
+
+    // If approved, automatically register as an official candidate for the election
+    if (newStatus === 'APPROVED' && updatedApp) {
+      await supabase.from('candidates').insert([
+        {
+          election_id: updatedApp.election_id,
+          name: updatedApp.full_name || 'Approved Candidate',
+          student_id: updatedApp.student_id,
+          department: updatedApp.department || null,
+          slogan: updatedApp.slogan || null,
+          manifesto: updatedApp.manifesto || null,
+          photo_url:
+            updatedApp.photo_url ||
+            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+          symbol: updatedApp.symbol || '🛡️ Shield',
+          votes_count: 0,
+        },
+      ]);
+    }
   } catch (err) {
     console.warn('DB update application fallback:', err);
   }

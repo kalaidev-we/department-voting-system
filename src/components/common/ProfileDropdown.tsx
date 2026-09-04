@@ -76,9 +76,15 @@ export function ProfileDropdown({ onNavigate }: ProfileDropdownProps) {
                 {profile?.email}
               </p>
 
-              <div className="mt-1.5 inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-brand-50 border border-blue-100 text-[10px] font-bold text-brand-700">
-                <ShieldCheck className="w-3 h-3 text-brand-600" />
-                <span>{profile?.role === 'STAFF_ADMIN' ? 'Staff Administrator' : 'Student Voter'}</span>
+              <div className="mt-1.5 inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-purple-50 border border-purple-100 text-[10px] font-bold text-purple-700">
+                <ShieldCheck className="w-3 h-3 text-purple-600" />
+                <span>
+                  {profile?.role === 'SUPER_ADMIN'
+                    ? 'Super Admin (Institution Lead)'
+                    : profile?.role === 'STAFF_ADMIN'
+                    ? 'Staff Administrator'
+                    : 'Student Voter'}
+                </span>
               </div>
             </div>
           </div>

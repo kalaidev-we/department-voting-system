@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { submitCandidateApplication } from '../../services/candidateService';
+import { fetchStaffElections } from '../../services/electionService';
+import { Election } from '../../lib/types';
 import {
   ChevronLeft,
   ShieldCheck,
@@ -20,7 +22,8 @@ interface CandidateApplyPageProps {
 export function CandidateApplyPage({ onBack, onSuccess }: CandidateApplyPageProps) {
   const { profile } = useAuth();
 
-  const [electionId, setElectionId] = useState('el-001');
+  const [elections, setElections] = useState<Election[]>([]);
+  const [electionId, setElectionId] = useState('');
   const [cgpa, setCgpa] = useState('8.65');
   const [slogan, setSlogan] = useState('');
   const [manifesto, setManifesto] = useState('');
@@ -33,9 +36,28 @@ export function CandidateApplyPage({ onBack, onSuccess }: CandidateApplyPageProp
   const [error, setError] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
+  useEffect(() => {
+    async function loadElections() {
+      const list = await fetchStaffElections();
+      const openElections = list.filter((e) => e.status === 'ACTIVE' || e.status === 'SCHEDULED');
+      setElections(openElections);
+      if (openElections.length > 0) {
+        setElectionId(openElections[0].id);
+      }
+    }
+    loadElections();
+  }, []);
+
+  const selectedElection = elections.find((e) => e.id === electionId);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (!electionId) {
+      setError('Please select an active election to contest.');
+      return;
+    }
 
     const numCgpa = parseFloat(cgpa);
     if (isNaN(numCgpa) || numCgpa < 7.5) {
@@ -57,7 +79,7 @@ export function CandidateApplyPage({ onBack, onSuccess }: CandidateApplyPageProp
 
     const result = await submitCandidateApplication({
       election_id: electionId,
-      election_title: 'Cybersecurity Association President',
+      election_title: selectedElection?.title || 'Campus Election',
       student_id: profile?.student_id || '26SCL03',
       full_name: profile?.full_name || 'KPRIET Student',
       email: profile?.email || '26scl03@kpriet.ac.in',
@@ -91,7 +113,7 @@ export function CandidateApplyPage({ onBack, onSuccess }: CandidateApplyPageProp
           </h2>
 
           <p className="text-xs text-slate-500 leading-relaxed">
-            Your candidate application for <span className="font-semibold text-slate-800">Cybersecurity Association President</span> has been forwarded to the Staff Election Officers for credential and conduct verification.
+            Your candidate application for <span className="font-semibold text-slate-800">{selectedElection?.title || 'Campus Election'}</span> has been forwarded to the Staff Election Officers for credential and conduct verification.
           </p>
 
           <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-100 text-left text-xs space-y-1">
@@ -165,14 +187,23 @@ export function CandidateApplyPage({ onBack, onSuccess }: CandidateApplyPageProp
             <label className="text-xs font-bold text-slate-700 block">
               Contesting Election
             </label>
-            <select
-              value={electionId}
-              onChange={(e) => setElectionId(e.target.value)}
-              className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 font-semibold focus:outline-none focus:border-blue-500"
-            >
-              <option value="el-001">Cybersecurity Association President (Active)</option>
-              <option value="el-002">Student Council General Secretary (Scheduled)</option>
-            </select>
+            {elections.length === 0 ? (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+                No active elections available for nomination. Check back once election dates are announced.
+              </div>
+            ) : (
+              <select
+                value={electionId}
+                onChange={(e) => setElectionId(e.target.value)}
+                className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 font-semibold focus:outline-none focus:border-blue-500"
+              >
+                {elections.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.title} ({e.status})
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* Academic Eligibility (CGPA) */}

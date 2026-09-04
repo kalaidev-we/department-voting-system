@@ -99,44 +99,54 @@ export function AdminSecurityEventsPage({ onBack }: AdminSecurityEventsPageProps
           </div>
 
           <div className="divide-y divide-slate-100">
-            {filtered.map((evt) => (
-              <div key={evt.id} className="p-4 hover:bg-slate-50 transition-colors space-y-2 text-xs">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <span className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 font-mono font-bold text-[10px]">
-                      {evt.event_type}
-                    </span>
-                    <span
-                      className={`px-2 py-0.2 rounded-md font-bold text-[9px] ${
-                        evt.severity === 'HIGH'
-                          ? 'bg-red-100 text-red-800'
-                          : 'bg-amber-100 text-amber-800'
-                      }`}
-                    >
-                      {evt.severity}
+            {filtered.length === 0 ? (
+              <div className="p-8 text-center space-y-2">
+                <ShieldCheck className="w-8 h-8 text-emerald-500 mx-auto" />
+                <h4 className="text-sm font-bold text-slate-800">Zero Security Incidents Detected</h4>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  Domain Guard is active and monitoring all authentication attempts. Unauthorized domain access attempts and policy violations will appear here.
+                </p>
+              </div>
+            ) : (
+              filtered.map((evt) => (
+                <div key={evt.id} className="p-4 hover:bg-slate-50 transition-colors space-y-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <span className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 font-mono font-bold text-[10px]">
+                        {evt.event_type}
+                      </span>
+                      <span
+                        className={`px-2 py-0.2 rounded-md font-bold text-[9px] ${
+                          evt.severity === 'HIGH'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        {evt.severity}
+                      </span>
+                    </div>
+
+                    <span className="text-[11px] text-slate-400">
+                      {new Date(evt.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
 
-                  <span className="text-[11px] text-slate-400">
-                    {new Date(evt.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
+                  <p className="text-slate-700 leading-relaxed font-medium">
+                    {evt.description}
+                  </p>
 
-                <p className="text-slate-700 leading-relaxed font-medium">
-                  {evt.description}
-                </p>
-
-                <div className="flex items-center space-x-3 text-[10px] text-slate-400 font-mono">
-                  <span>Source IP: {evt.ip_address}</span>
-                  {evt.source_email && (
-                    <>
-                      <span>&bull;</span>
-                      <span>Target: {evt.source_email}</span>
-                    </>
-                  )}
+                  <div className="flex items-center space-x-3 text-[10px] text-slate-400 font-mono">
+                    <span>Source IP: {evt.ip_address}</span>
+                    {evt.source_email && (
+                      <>
+                        <span>&bull;</span>
+                        <span>Target: {evt.source_email}</span>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </main>

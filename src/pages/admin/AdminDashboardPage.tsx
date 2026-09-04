@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
   Shield,
@@ -11,8 +11,10 @@ import {
   ArrowRight,
   Database,
   Activity,
+  Loader2,
 } from 'lucide-react';
 import { ProfileDropdown } from '../../components/common/ProfileDropdown';
+import { fetchAdminMetrics, AdminMetrics } from '../../services/adminService';
 
 interface AdminDashboardPageProps {
   onNavigateTab: (tab: string) => void;
@@ -20,6 +22,27 @@ interface AdminDashboardPageProps {
 
 export function AdminDashboardPage({ onNavigateTab }: AdminDashboardPageProps) {
   const { profile } = useAuth();
+  const [metrics, setMetrics] = useState<AdminMetrics>({
+    registeredVoters: 0,
+    activeElections: 0,
+    ledgerBlocks: 0,
+    domainIntercepts: 0,
+  });
+  const [loadingMetrics, setLoadingMetrics] = useState(true);
+
+  useEffect(() => {
+    async function loadMetrics() {
+      try {
+        const data = await fetchAdminMetrics();
+        setMetrics(data);
+      } catch (err) {
+        console.error('Failed to load metrics:', err);
+      } finally {
+        setLoadingMetrics(false);
+      }
+    }
+    loadMetrics();
+  }, []);
 
   return (
     <div className="min-h-screen w-full bg-slate-50 flex flex-col select-none antialiased">
@@ -68,8 +91,10 @@ export function AdminDashboardPage({ onNavigateTab }: AdminDashboardPageProps) {
               <Users className="w-4 h-4" />
             </div>
             <span className="text-xs text-slate-400 font-medium">Registered Voters</span>
-            <div className="text-lg font-black text-slate-900">4,250</div>
-            <span className="text-[10px] text-emerald-600 font-bold">● 100% @kpriet.ac.in</span>
+            <div className="text-lg font-black text-slate-900">
+              {loadingMetrics ? '...' : metrics.registeredVoters.toLocaleString()}
+            </div>
+            <span className="text-[10px] text-emerald-600 font-bold">● Live Database</span>
           </div>
 
           <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-1">
@@ -77,8 +102,10 @@ export function AdminDashboardPage({ onNavigateTab }: AdminDashboardPageProps) {
               <Vote className="w-4 h-4" />
             </div>
             <span className="text-xs text-slate-400 font-medium">Active Elections</span>
-            <div className="text-lg font-black text-slate-900">2</div>
-            <span className="text-[10px] text-blue-600 font-bold">1 Scheduled</span>
+            <div className="text-lg font-black text-slate-900">
+              {loadingMetrics ? '...' : metrics.activeElections}
+            </div>
+            <span className="text-[10px] text-blue-600 font-bold">● Active Status</span>
           </div>
 
           <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-1">
@@ -86,7 +113,9 @@ export function AdminDashboardPage({ onNavigateTab }: AdminDashboardPageProps) {
               <Lock className="w-4 h-4" />
             </div>
             <span className="text-xs text-slate-400 font-medium">Ledger Blocks</span>
-            <div className="text-lg font-black text-slate-900">932</div>
+            <div className="text-lg font-black text-slate-900">
+              {loadingMetrics ? '...' : metrics.ledgerBlocks.toLocaleString()}
+            </div>
             <span className="text-[10px] text-purple-600 font-bold">SHA-256 Chained</span>
           </div>
 
@@ -95,7 +124,9 @@ export function AdminDashboardPage({ onNavigateTab }: AdminDashboardPageProps) {
               <AlertTriangle className="w-4 h-4" />
             </div>
             <span className="text-xs text-slate-400 font-medium">Domain Intercepts</span>
-            <div className="text-lg font-black text-slate-900">3</div>
+            <div className="text-lg font-black text-slate-900">
+              {loadingMetrics ? '...' : metrics.domainIntercepts}
+            </div>
             <span className="text-[10px] text-rose-600 font-bold">Blocked External</span>
           </div>
         </div>

@@ -139,34 +139,44 @@ export function AdminAuditLogsPage({ onBack }: AdminAuditLogsPageProps) {
           </div>
 
           <div className="divide-y divide-slate-100">
-            {filtered.map((log) => (
-              <div key={log.id} className="p-4 hover:bg-slate-50 transition-colors space-y-1.5 text-xs">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-mono font-bold text-[10px]">
-                      {log.action}
-                    </span>
-                    <span className="text-slate-400 font-mono text-[11px]">
-                      {log.actor_email} ({log.actor_role})
+            {filtered.length === 0 ? (
+              <div className="p-8 text-center space-y-2">
+                <Terminal className="w-8 h-8 text-slate-300 mx-auto" />
+                <h4 className="text-sm font-bold text-slate-800">No Audit Events Logged</h4>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  Audit events and administrative activity records will automatically stream into this table in real-time.
+                </p>
+              </div>
+            ) : (
+              filtered.map((log) => (
+                <div key={log.id} className="p-4 hover:bg-slate-50 transition-colors space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-mono font-bold text-[10px]">
+                        {log.action}
+                      </span>
+                      <span className="text-slate-400 font-mono text-[11px]">
+                        {log.actor_email} ({log.actor_role})
+                      </span>
+                    </div>
+
+                    <span className="text-[11px] text-slate-400">
+                      {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
 
-                  <span className="text-[11px] text-slate-400">
-                    {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
+                  <p className="text-slate-700 leading-relaxed">
+                    {log.details}
+                  </p>
 
-                <p className="text-slate-700 leading-relaxed">
-                  {log.details}
-                </p>
-
-                <div className="flex items-center space-x-3 text-[10px] text-slate-400 font-mono">
-                  <span>Source: {log.ip_address}</span>
-                  <span>&bull;</span>
-                  <span className="text-emerald-600 font-bold">STATUS: {log.status}</span>
+                  <div className="flex items-center space-x-3 text-[10px] text-slate-400 font-mono">
+                    <span>Source: {log.ip_address}</span>
+                    <span>&bull;</span>
+                    <span className="text-emerald-600 font-bold">STATUS: {log.status}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </main>

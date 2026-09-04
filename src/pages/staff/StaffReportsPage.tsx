@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { StaffHeader } from '../../components/staff/StaffHeader';
 import { StaffBottomNav } from '../../components/staff/StaffBottomNav';
+import { Election } from '../../lib/types';
+import { fetchStaffElections } from '../../services/electionService';
 import {
   BarChart3,
   Download,
@@ -17,13 +19,37 @@ interface StaffReportsPageProps {
 }
 
 export function StaffReportsPage({ onNavigateTab }: StaffReportsPageProps) {
-  const handleExportCSV = () => {
-    const csv = `Election Title,Voter Turnout (%),Eligible Count,Votes Recorded,Anonymity Status,Timestamp
-Cybersecurity Association President,74.7%,1248,932,DECOUPLED & VERIFIED,${new Date().toISOString()}
-Student Council General Secretary,0.0%,4250,0,SCHEDULED,${new Date().toISOString()}
-Class Representative 2025 Section A,94.1%,68,64,CLOSED & SEALED,${new Date().toISOString()}`;
+  const [elections, setElections] = useState<Election[]>([]);
 
-    const blob = new Blob([csv], { type: 'text/csv' });
+  useEffect(() => {
+    async function load() {
+      const list = await fetchStaffElections();
+      setElections(list);
+    }
+    load();
+  }, []);
+
+  const activeElection = elections.find((e) => e.status === 'ACTIVE') || elections[0];
+  const eligibleCount = activeElection?.eligible_voters_count || 0;
+  const votesRecorded = activeElection?.votes_count || 0;
+  const turnoutRate =
+    eligibleCount > 0 ? parseFloat(((votesRecorded / eligibleCount) * 100).toFixed(1)) : 0;
+
+  const handleExportCSV = () => {
+    const header = 'Election Title,Voter Turnout (%),Eligible Count,Votes Recorded,Status,Timestamp\n';
+    const rows = elections.length > 0
+      ? elections
+          .map((el) => {
+            const elTurnout =
+              el.eligible_voters_count > 0
+                ? ((el.votes_count / el.eligible_voters_count) * 100).toFixed(1)
+                : '0.0';
+            return `"${el.title}",${elTurnout}%,${el.eligible_voters_count},${el.votes_count},${el.status},${new Date().toISOString()}`;
+          })
+          .join('\n')
+      : `No Elections Recorded,0%,0,0,EMPTY,${new Date().toISOString()}`;
+
+    const blob = new Blob([header + rows], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -62,32 +88,35 @@ Class Representative 2025 Section A,94.1%,68,64,CLOSED & SEALED,${new Date().toI
         <div className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-slate-900">
-              Department Turnout Rate (Active Election)
+              {activeElection ? `${activeElection.title} Turnout` : 'Institutional Voter Turnout'}
             </h2>
-            <span className="text-base font-black text-blue-600">74.7%</span>
+            <span className="text-base font-black text-blue-600">{turnoutRate}%</span>
           </div>
 
           {/* Progress Bar */}
           <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full w-[74.7%]" />
+            <div
+              className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-500"
+              style={{ width: `${Math.min(turnoutRate, 100)}%` }}
+            />
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 text-xs">
             <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-              <span className="text-slate-400 text-[10px] block">1st Year</span>
-              <span className="font-bold text-slate-800">81.4% Turnout</span>
+              <span className="text-slate-400 text-[10px] block">Eligible Roll</span>
+              <span className="font-bold text-slate-800">{eligibleCount.toLocaleString()} Voters</span>
             </div>
             <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-              <span className="text-slate-400 text-[10px] block">2nd Year</span>
-              <span className="font-bold text-slate-800">76.2% Turnout</span>
+              <span className="text-slate-400 text-[10px] block">Ballots Cast</span>
+              <span className="font-bold text-slate-800">{votesRecorded.toLocaleString()} Ballots</span>
             </div>
             <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-              <span className="text-slate-400 text-[10px] block">3rd Year</span>
-              <span className="font-bold text-slate-800">71.0% Turnout</span>
+              <span className="text-slate-400 text-[10px] block">Active Status</span>
+              <span className="font-bold text-slate-800">{activeElection?.status || 'IDLE'}</span>
             </div>
             <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-              <span className="text-slate-400 text-[10px] block">4th Year</span>
-              <span className="font-bold text-slate-800">70.2% Turnout</span>
+              <span className="text-slate-400 text-[10px] block">Audit Proof</span>
+              <span className="font-bold text-emerald-600">SHA-256 Valid</span>
             </div>
           </div>
         </div>
@@ -100,7 +129,7 @@ Class Representative 2025 Section A,94.1%,68,64,CLOSED & SEALED,${new Date().toI
               Immutable Anonymity Protection Confirmed
             </h3>
             <p className="text-emerald-700 leading-relaxed">
-              Voter identification data has been stripped. Participation records verify that 932 unique students voted without linking any ballot choices to names or student roll numbers.
+              Voter identification data is cryptographically decoupled. Participation records confirm that verified institutional voters cast ballots without linking any ballot choices to student roll numbers or identity profiles.
             </p>
           </div>
         </div>

@@ -142,7 +142,7 @@ export function StudentHomePage({
           </div>
 
           <button
-            onClick={() => onApplyForCandidacy && onApplyForCandidacy('el-001')}
+            onClick={() => onApplyForCandidacy && onApplyForCandidacy(elections[0]?.id || '')}
             className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-colors shrink-0 cursor-pointer"
           >
             Apply as Candidate
@@ -155,68 +155,87 @@ export function StudentHomePage({
             Active Campus Ballots
           </h3>
 
-          {elections.map((election) => {
-            const isVoted = votedMap[election.id];
-            const receipt = isVoted ? getStoredReceipt(election.id, studentId) : null;
-
-            return (
-              <div
-                key={election.id}
-                className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-3 hover:border-blue-300 transition-all"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-blue-700 uppercase">
-                    {election.election_type}
-                  </span>
-
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-bold border border-emerald-200 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Voting Open
-                  </span>
-                </div>
-
-                <div>
-                  <h4 className="text-sm sm:text-base font-bold text-slate-900">
-                    {election.title}
-                  </h4>
-                  <p className="text-xs text-slate-500 mt-1">{election.description}</p>
-                </div>
-
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-xs text-slate-500 flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-slate-400" />
-                    Ends in 1 day 4 hours
-                  </span>
-
-                  {isVoted ? (
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => receipt && onViewReceipt && onViewReceipt(receipt)}
-                        className="h-10 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center space-x-1.5 transition-all cursor-pointer"
-                      >
-                        <FileCheck className="w-4 h-4 text-slate-500" />
-                        <span>View Receipt</span>
-                      </button>
-
-                      <span className="h-10 px-3.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center space-x-1.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                        <span>Ballot Cast</span>
-                      </span>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => onEnterVotingBooth && onEnterVotingBooth(election.id)}
-                      className="h-10 px-4 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all cursor-pointer bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-500/20"
-                    >
-                      <Vote className="w-4 h-4" />
-                      <span>Enter Voting Booth</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
+          {elections.length === 0 ? (
+            <div className="p-8 rounded-2xl bg-white border border-slate-200/80 shadow-xs text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+                <Vote className="w-6 h-6" />
               </div>
-            );
-          })}
+              <div>
+                <h4 className="text-sm font-bold text-slate-800">No Active Ballots Currently</h4>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                  There are currently no active campus elections open for voting. When election officers publish an election, it will appear here.
+                </p>
+              </div>
+            </div>
+          ) : (
+            elections.map((election) => {
+              const isVoted = votedMap[election.id];
+              const receipt = isVoted ? getStoredReceipt(election.id, studentId) : null;
+              const diffMs = new Date(election.end_at).getTime() - Date.now();
+              const hours = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60)));
+              const days = Math.floor(hours / 24);
+              const remHours = hours % 24;
+              const timeLabel = diffMs <= 0 ? 'Voting Closed' : days > 0 ? `Ends in ${days}d ${remHours}h` : `Ends in ${hours}h`;
+
+              return (
+                <div
+                  key={election.id}
+                  className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-3 hover:border-blue-300 transition-all"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-blue-700 uppercase">
+                      {election.election_type}
+                    </span>
+
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-bold border border-emerald-200 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Voting Open
+                    </span>
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm sm:text-base font-bold text-slate-900">
+                      {election.title}
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-1">{election.description}</p>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-xs text-slate-500 flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                      {timeLabel}
+                    </span>
+
+                    {isVoted ? (
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => receipt && onViewReceipt && onViewReceipt(receipt)}
+                          className="h-10 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center space-x-1.5 transition-all cursor-pointer"
+                        >
+                          <FileCheck className="w-4 h-4 text-slate-500" />
+                          <span>View Receipt</span>
+                        </button>
+
+                        <span className="h-10 px-3.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center space-x-1.5">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          <span>Ballot Cast</span>
+                        </span>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => onEnterVotingBooth && onEnterVotingBooth(election.id)}
+                        className="h-10 px-4 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all cursor-pointer bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-500/20"
+                      >
+                        <Vote className="w-4 h-4" />
+                        <span>Enter Voting Booth</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </main>
     </div>

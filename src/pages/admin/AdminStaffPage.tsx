@@ -95,44 +95,54 @@ export function AdminStaffPage({ onBack, onAddNewStaff }: AdminStaffPageProps) {
           </div>
 
           <div className="divide-y divide-slate-100">
-            {filtered.map((staff) => (
-              <div
-                key={staff.id}
-                className="p-4 hover:bg-slate-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-              >
-                <div className="flex items-start sm:items-center space-x-3.5">
-                  <div className="w-11 h-11 rounded-2xl bg-indigo-100/70 text-indigo-700 font-bold text-sm flex items-center justify-center shrink-0 border border-indigo-200/60">
-                    {staff.name.charAt(0)}
-                  </div>
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <h4 className="text-sm font-bold text-slate-900">{staff.name}</h4>
-                      <span className="px-2 py-0.2 rounded-md bg-slate-100 text-slate-700 font-mono text-[10px] font-bold">
-                        {staff.employee_id}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-0.5 font-medium">
-                      {staff.designation} &bull; {staff.department}
-                    </p>
-                    <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-                      {staff.email}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2 self-start sm:self-center">
-                  <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-200/60 flex items-center gap-1">
-                    <Vote className="w-3 h-3 text-blue-600" />
-                    Voter Eligible
-                  </span>
-
-                  <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200/60 flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                    Staff Admin
-                  </span>
-                </div>
+            {filtered.length === 0 ? (
+              <div className="p-8 text-center space-y-2">
+                <UserCheck className="w-8 h-8 text-slate-300 mx-auto" />
+                <h4 className="text-sm font-bold text-slate-800">No Staff Members Found</h4>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  No staff election officers or faculty members enrolled yet. Click "Add Staff Member" to add authorized personnel.
+                </p>
               </div>
-            ))}
+            ) : (
+              filtered.map((staff) => (
+                <div
+                  key={staff.id}
+                  className="p-4 hover:bg-slate-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                >
+                  <div className="flex items-start sm:items-center space-x-3.5">
+                    <div className="w-11 h-11 rounded-2xl bg-indigo-100/70 text-indigo-700 font-bold text-sm flex items-center justify-center shrink-0 border border-indigo-200/60">
+                      {staff.name.charAt(0)}
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <h4 className="text-sm font-bold text-slate-900">{staff.name}</h4>
+                        <span className="px-2 py-0.2 rounded-md bg-slate-100 text-slate-700 font-mono text-[10px] font-bold">
+                          {staff.employee_id}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                        {staff.designation} &bull; {staff.department}
+                      </p>
+                      <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                        {staff.email}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 self-start sm:self-center">
+                    <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-200/60 flex items-center gap-1">
+                      <Vote className="w-3 h-3 text-blue-600" />
+                      Voter Eligible
+                    </span>
+
+                    <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200/60 flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                      Staff Admin
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </main>

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Candidate, VoteReceipt } from '../../lib/types';
+import { Candidate, VoteReceipt, Election } from '../../lib/types';
 import { fetchCandidates, submitVote, hasStudentVoted } from '../../services/votingService';
+import { fetchElectionById } from '../../services/electionService';
 import {
   ChevronLeft,
   Shield,
@@ -28,8 +29,9 @@ interface VotingPageProps {
 
 export function VotingPage({ electionId = 'el-001', onBack, onVoteSuccess }: VotingPageProps) {
   const { profile } = useAuth();
+  const [election, setElection] = useState<Election | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [selectedCandidateId, setSelectedCandidateId] = useState<string>('cand-arun-01');
+  const [selectedCandidateId, setSelectedCandidateId] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'candidates' | 'about' | 'rules'>('candidates');
   const [manifestoModalCandidate, setManifestoModalCandidate] = useState<Candidate | null>(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -39,8 +41,15 @@ export function VotingPage({ electionId = 'el-001', onBack, onVoteSuccess }: Vot
 
   useEffect(() => {
     async function load() {
+      if (electionId) {
+        const el = await fetchElectionById(electionId);
+        setElection(el);
+      }
       const list = await fetchCandidates(electionId);
       setCandidates(list);
+      if (list.length > 0) {
+        setSelectedCandidateId(list[0].id);
+      }
 
       const voted = await hasStudentVoted(electionId, profile?.student_id || profile?.id || '26SCL03');
       setAlreadyVoted(voted);
@@ -68,7 +77,7 @@ export function VotingPage({ electionId = 'el-001', onBack, onVoteSuccess }: Vot
       electionId,
       candidateId: selectedCandidate.id,
       studentId: profile?.student_id || profile?.id || '26SCL03',
-      electionTitle: 'Cybersecurity Association President',
+      electionTitle: election?.title || 'Campus Election',
       candidateName: selectedCandidate.name,
     });
 
@@ -121,65 +130,79 @@ export function VotingPage({ electionId = 'el-001', onBack, onVoteSuccess }: Vot
       {/* Main Content Container (Mobile First & Desktop Centered) */}
       <main className="flex-1 w-full max-w-xl mx-auto px-4 sm:px-6 py-4 space-y-5">
         {/* 2. Hero Election Card (Matching Media Reference) */}
-        <div className="bg-[#f4f7fb] rounded-3xl p-5 border border-slate-100 relative space-y-4">
-          <div className="flex items-start justify-between">
-            {/* Trophy Icon */}
-            <div className="w-12 h-12 rounded-2xl bg-blue-100/90 text-blue-600 flex items-center justify-center shrink-0">
-              <Trophy className="w-6 h-6" />
-            </div>
+        {(() => {
+          const diffMs = election?.end_at ? new Date(election.end_at).getTime() - Date.now() : 0;
+          const hours = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60)));
+          const days = Math.floor(hours / 24);
+          const remHours = hours % 24;
+          const timeLabel = !election?.end_at ? 'Open' : diffMs <= 0 ? 'Voting Closed' : days > 0 ? `${days}d ${remHours}h` : `${hours}h`;
 
-            {/* Top Right Badges */}
-            <div className="flex items-center space-x-2">
-              <span className="px-2.5 py-1 rounded-full bg-blue-100/80 text-blue-700 text-xs font-medium">
-                Department Election
-              </span>
-              <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold flex items-center gap-1.5 border border-emerald-200/50">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Voting Open
-              </span>
-            </div>
-          </div>
+          return (
+            <div className="bg-[#f4f7fb] rounded-3xl p-5 border border-slate-100 relative space-y-4">
+              <div className="flex items-start justify-between">
+                {/* Trophy Icon */}
+                <div className="w-12 h-12 rounded-2xl bg-blue-100/90 text-blue-600 flex items-center justify-center shrink-0">
+                  <Trophy className="w-6 h-6" />
+                </div>
 
-          <div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-snug">
-              Cybersecurity Association President
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Choose one candidate to represent our department.
-            </p>
-          </div>
-
-          {/* Metric Row: 3 White Pill Boxes */}
-          <div className="grid grid-cols-3 gap-2 pt-1">
-            {/* Box 1: Eligible Voters */}
-            <div className="bg-white rounded-2xl p-3 border border-slate-100 flex flex-col justify-center items-start shadow-2xs">
-              <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-1.5">
-                <Users className="w-4 h-4" />
+                {/* Top Right Badges */}
+                <div className="flex items-center space-x-2">
+                  <span className="px-2.5 py-1 rounded-full bg-blue-100/80 text-blue-700 text-xs font-medium">
+                    {election?.election_type || 'Department Election'}
+                  </span>
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold flex items-center gap-1.5 border border-emerald-200/50">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    Voting Open
+                  </span>
+                </div>
               </div>
-              <span className="text-sm font-extrabold text-slate-900 leading-tight">1,248</span>
-              <span className="text-[10px] text-slate-400 font-medium">Eligible Voters</span>
-            </div>
 
-            {/* Box 2: Countdown Timer */}
-            <div className="bg-white rounded-2xl p-3 border border-slate-100 flex flex-col justify-center items-start shadow-2xs">
-              <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-1.5">
-                <Calendar className="w-4 h-4" />
+              <div>
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-snug">
+                  {election?.title || 'Campus Election'}
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                  {election?.description || 'Choose one candidate to represent our institution.'}
+                </p>
               </div>
-              <span className="text-[10px] text-slate-400 font-medium">Ends in</span>
-              <span className="text-xs font-extrabold text-blue-600 leading-tight">1 day 4 hours</span>
-              <span className="text-[9px] text-slate-400 truncate w-full">21 May 2025, 5:00 PM</span>
-            </div>
 
-            {/* Box 3: Candidates Count */}
-            <div className="bg-white rounded-2xl p-3 border border-slate-100 flex flex-col justify-center items-start shadow-2xs">
-              <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-1.5">
-                <FileText className="w-4 h-4" />
+              {/* Metric Row: 3 White Pill Boxes */}
+              <div className="grid grid-cols-3 gap-2 pt-1">
+                {/* Box 1: Eligible Voters */}
+                <div className="bg-white rounded-2xl p-3 border border-slate-100 flex flex-col justify-center items-start shadow-2xs">
+                  <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-1.5">
+                    <Users className="w-4 h-4" />
+                  </div>
+                  <span className="text-sm font-extrabold text-slate-900 leading-tight">
+                    {election?.eligible_voters_count ? election.eligible_voters_count.toLocaleString() : '0'}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-medium">Eligible Voters</span>
+                </div>
+
+                {/* Box 2: Countdown Timer */}
+                <div className="bg-white rounded-2xl p-3 border border-slate-100 flex flex-col justify-center items-start shadow-2xs">
+                  <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-1.5">
+                    <Calendar className="w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-medium">Ends in</span>
+                  <span className="text-xs font-extrabold text-blue-600 leading-tight">{timeLabel}</span>
+                  <span className="text-[9px] text-slate-400 truncate w-full">
+                    {election?.end_at ? new Date(election.end_at).toLocaleDateString() : 'Active'}
+                  </span>
+                </div>
+
+                {/* Box 3: Candidates Count */}
+                <div className="bg-white rounded-2xl p-3 border border-slate-100 flex flex-col justify-center items-start shadow-2xs">
+                  <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-1.5">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <span className="text-sm font-extrabold text-slate-900 leading-tight">{candidates.length}</span>
+                  <span className="text-[10px] text-slate-400 font-medium">Candidates</span>
+                </div>
               </div>
-              <span className="text-sm font-extrabold text-slate-900 leading-tight">4</span>
-              <span className="text-[10px] text-slate-400 font-medium">Candidates</span>
             </div>
-          </div>
-        </div>
+          );
+        })()}
 
         {/* 3. Segmented Tab Navigation */}
         <div className="flex items-center border-b border-slate-200">
@@ -239,66 +262,84 @@ export function VotingPage({ electionId = 'el-001', onBack, onVoteSuccess }: Vot
             </div>
 
             {/* Candidate List Cards */}
-            <div className="space-y-3">
-              {candidates.map((candidate) => {
-                const isSelected = selectedCandidateId === candidate.id;
-                return (
-                  <div
-                    key={candidate.id}
-                    onClick={() => setSelectedCandidateId(candidate.id)}
-                    className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                      isSelected
-                        ? 'border-blue-500 bg-blue-50/25 ring-1 ring-blue-500/20'
-                        : 'border-slate-200/80 bg-white hover:border-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3.5 min-w-0">
-                      {/* Photo Avatar */}
-                      <img
-                        src={candidate.photo_url}
-                        alt={candidate.name}
-                        className="w-13 h-13 sm:w-14 sm:h-14 rounded-full object-cover shrink-0 ring-2 ring-slate-100"
-                      />
-
-                      <div className="min-w-0">
-                        <h3 className="text-sm sm:text-base font-bold text-slate-900 truncate">
-                          {candidate.name}
-                        </h3>
-                        <p className="text-xs text-slate-500 truncate max-w-[200px] sm:max-w-xs mt-0.5">
-                          "{candidate.slogan}"
-                        </p>
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setManifestoModalCandidate(candidate);
-                          }}
-                          className="mt-2 inline-flex items-center px-2.5 py-1 rounded-full bg-slate-100 hover:bg-blue-100 hover:text-blue-700 text-[11px] font-medium text-slate-700 transition-colors cursor-pointer"
-                        >
-                          View Manifesto
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Radio Button */}
-                    <div className="shrink-0 pr-1">
-                      <div
-                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                          isSelected
-                            ? 'border-blue-600 bg-white'
-                            : 'border-slate-300 bg-white'
-                        }`}
-                      >
-                        {isSelected && (
-                          <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+            {candidates.length === 0 ? (
+              <div className="p-8 rounded-2xl bg-white border border-slate-200/80 shadow-xs text-center space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+                  <Users className="w-6 h-6" />
+                </div>
+                <h4 className="text-sm font-bold text-slate-800">No Candidates Nominated Yet</h4>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  There are currently no verified candidates registered for this ballot. Nominees will appear once approved by the election committee.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {candidates.map((candidate) => {
+                  const isSelected = selectedCandidateId === candidate.id;
+                  return (
+                    <div
+                      key={candidate.id}
+                      onClick={() => setSelectedCandidateId(candidate.id)}
+                      className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                        isSelected
+                          ? 'border-blue-500 bg-blue-50/25 ring-1 ring-blue-500/20'
+                          : 'border-slate-200/80 bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3.5 min-w-0">
+                        {/* Photo Avatar */}
+                        {candidate.photo_url ? (
+                          <img
+                            src={candidate.photo_url}
+                            alt={candidate.name}
+                            className="w-13 h-13 sm:w-14 sm:h-14 rounded-full object-cover shrink-0 ring-2 ring-slate-100"
+                          />
+                        ) : (
+                          <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-base shrink-0 ring-2 ring-slate-100">
+                            {candidate.name.charAt(0)}
+                          </div>
                         )}
+
+                        <div className="min-w-0">
+                          <h3 className="text-sm sm:text-base font-bold text-slate-900 truncate">
+                            {candidate.name}
+                          </h3>
+                          <p className="text-xs text-slate-500 truncate max-w-[200px] sm:max-w-xs mt-0.5">
+                            "{candidate.slogan || 'Candidate for ' + (election?.title || 'Office')}"
+                          </p>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setManifestoModalCandidate(candidate);
+                            }}
+                            className="mt-2 inline-flex items-center px-2.5 py-1 rounded-full bg-slate-100 hover:bg-blue-100 hover:text-blue-700 text-[11px] font-medium text-slate-700 transition-colors cursor-pointer"
+                          >
+                            View Manifesto
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Radio Button */}
+                      <div className="shrink-0 pr-1">
+                        <div
+                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                            isSelected
+                              ? 'border-blue-600 bg-white'
+                              : 'border-slate-300 bg-white'
+                          }`}
+                        >
+                          {isSelected && (
+                            <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Error Message */}
             {errorMessage && (
@@ -319,7 +360,7 @@ export function VotingPage({ electionId = 'el-001', onBack, onVoteSuccess }: Vot
                   You cannot submit another vote in this election.
                 </p>
               </div>
-            ) : (
+            ) : candidates.length > 0 && (
               <div className="space-y-3 pt-2">
                 {/* Confirm Vote Button */}
                 <button
@@ -346,10 +387,8 @@ export function VotingPage({ electionId = 'el-001', onBack, onVoteSuccess }: Vot
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
               <h3 className="font-bold text-slate-900 text-sm">Election Purpose</h3>
               <p className="leading-relaxed">
-                The Cybersecurity Association President represents all undergraduate and postgraduate
-                students enrolled in the Department of Cybersecurity for the academic session 2026-27.
-                The elected leader works closely with faculty coordinators, external cybersecurity sponsors,
-                and collegiate hackathon committees.
+                {election?.description ||
+                  `Official campus democratic election for ${election?.title || 'office'}. Registered voters may cast one verified, anonymous ballot.`}
               </p>
             </div>
 
@@ -357,20 +396,24 @@ export function VotingPage({ electionId = 'el-001', onBack, onVoteSuccess }: Vot
               <h3 className="font-bold text-slate-900 text-sm">Election Timeline</h3>
               <ul className="space-y-2 text-xs">
                 <li className="flex justify-between py-1 border-b border-slate-200/60">
-                  <span className="text-slate-500">Nomination Window:</span>
-                  <span className="font-semibold text-slate-800">12 May – 16 May 2025</span>
+                  <span className="text-slate-500">Election Type:</span>
+                  <span className="font-semibold text-slate-800">{election?.election_type || 'Department Election'}</span>
                 </li>
                 <li className="flex justify-between py-1 border-b border-slate-200/60">
-                  <span className="text-slate-500">Campaigning Closes:</span>
-                  <span className="font-semibold text-slate-800">19 May 2025, 11:59 PM</span>
+                  <span className="text-slate-500">Academic Year:</span>
+                  <span className="font-semibold text-slate-800">{election?.academic_year || '2026-2027'}</span>
                 </li>
                 <li className="flex justify-between py-1 border-b border-slate-200/60">
-                  <span className="text-slate-500">Voting Period:</span>
-                  <span className="font-semibold text-blue-600">20 May 9:00 AM – 21 May 5:00 PM</span>
+                  <span className="text-slate-500">Voting Starts:</span>
+                  <span className="font-semibold text-blue-600">
+                    {election?.start_at ? new Date(election.start_at).toLocaleString() : 'Active Now'}
+                  </span>
                 </li>
                 <li className="flex justify-between py-1">
-                  <span className="text-slate-500">Results Certification:</span>
-                  <span className="font-semibold text-slate-800">21 May 2025, 6:30 PM</span>
+                  <span className="text-slate-500">Voting Concludes:</span>
+                  <span className="font-semibold text-slate-800">
+                    {election?.end_at ? new Date(election.end_at).toLocaleString() : 'Open'}
+                  </span>
                 </li>
               </ul>
             </div>
@@ -499,17 +542,23 @@ export function VotingPage({ electionId = 'el-001', onBack, onVoteSuccess }: Vot
 
             {/* Selected Candidate Summary Box */}
             <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center space-x-3 text-left">
-              <img
-                src={selectedCandidate.photo_url}
-                alt={selectedCandidate.name}
-                className="w-12 h-12 rounded-full object-cover ring-2 ring-blue-500/30 shrink-0"
-              />
+              {selectedCandidate.photo_url ? (
+                <img
+                  src={selectedCandidate.photo_url}
+                  alt={selectedCandidate.name}
+                  className="w-12 h-12 rounded-full object-cover ring-2 ring-blue-500/30 shrink-0"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-base shrink-0 ring-2 ring-blue-500/30">
+                  {selectedCandidate.name.charAt(0)}
+                </div>
+              )}
               <div className="min-w-0">
                 <h4 className="text-sm font-bold text-slate-900 truncate">
                   {selectedCandidate.name}
                 </h4>
                 <p className="text-xs text-blue-600 font-semibold truncate">
-                  Cybersecurity Association President
+                  {election?.title || 'Campus Election'}
                 </p>
               </div>
             </div>

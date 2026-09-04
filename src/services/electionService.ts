@@ -1,52 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { Election, DashboardSummaryStats, ElectionStatus } from '../lib/types';
 
-// Default realistic sample elections based on project specifications
-const DEFAULT_ELECTIONS: Election[] = [
-  {
-    id: 'el-001',
-    title: 'Cybersecurity Association President',
-    description: 'Election for student leadership of the KPRIET Cybersecurity Association (2026-27).',
-    election_type: 'Department Election',
-    status: 'ACTIVE',
-    eligible_voters_count: 1248,
-    votes_count: 932,
-    start_at: new Date(Date.now() - 4 * 3600 * 1000).toISOString(),
-    end_at: new Date(Date.now() + 4.5 * 3600 * 1000).toISOString(), // Ends in ~4h 30m
-    department_name: 'Cybersecurity Department',
-    academic_year: '2026-2027',
-    created_at: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'el-002',
-    title: 'Student Council General Secretary',
-    description: 'Campus-wide election for the apex student council general secretary.',
-    election_type: 'Campus Election',
-    status: 'SCHEDULED',
-    eligible_voters_count: 4250,
-    votes_count: 0,
-    start_at: new Date(Date.now() + 18 * 3600 * 1000).toISOString(),
-    end_at: new Date(Date.now() + 42 * 3600 * 1000).toISOString(),
-    department_name: 'All Departments',
-    academic_year: '2026-2027',
-    created_at: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'el-003',
-    title: 'Class Representative (2025 Batch Section A)',
-    description: 'Annual election for the department class representative and academic liaison.',
-    election_type: 'Class Election',
-    status: 'CLOSED',
-    eligible_voters_count: 68,
-    votes_count: 64,
-    start_at: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
-    end_at: new Date(Date.now() - 12 * 3600 * 1000).toISOString(),
-    department_name: 'Cybersecurity Department',
-    academic_year: '2026-2027',
-    created_at: new Date(Date.now() - 72 * 3600 * 1000).toISOString(),
-  },
-];
-
 export async function fetchStaffElections(): Promise<Election[]> {
   try {
     const { data, error } = await supabase
@@ -54,7 +8,7 @@ export async function fetchStaffElections(): Promise<Election[]> {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && data && data.length > 0) {
+    if (!error && data) {
       // Map Supabase rows to Election model
       return data.map((item: any) => ({
         id: item.id,
@@ -62,30 +16,69 @@ export async function fetchStaffElections(): Promise<Election[]> {
         description: item.description || '',
         election_type: item.election_type || 'Department Election',
         status: (item.status as ElectionStatus) || 'ACTIVE',
-        eligible_voters_count: item.eligible_voters_count || 1248,
-        votes_count: item.votes_count || 932,
+        eligible_voters_count: item.eligible_voters_count || 0,
+        votes_count: item.votes_count || 0,
         start_at: item.start_at || new Date().toISOString(),
-        end_at: item.end_at || new Date(Date.now() + 4 * 3600 * 1000).toISOString(),
-        department_name: 'Cybersecurity Department',
+        end_at: item.end_at || new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+        department_name: item.department_name || 'All Departments',
         academic_year: item.academic_year || '2026-2027',
         created_at: item.created_at,
       }));
     }
+    if (error) {
+      console.error('Error fetching elections from Supabase:', error.message);
+    }
   } catch (err) {
-    console.warn('Using default seed elections data:', err);
+    console.error('Failed to query elections table:', err);
   }
 
-  // Fallback to initial seed data
-  return DEFAULT_ELECTIONS;
+  return [];
+}
+
+export async function fetchElectionById(id: string): Promise<Election | null> {
+  try {
+    const { data, error } = await supabase
+      .from('elections')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (!error && data) {
+      return {
+        id: data.id,
+        title: data.title,
+        description: data.description || '',
+        election_type: data.election_type || 'Department Election',
+        status: (data.status as ElectionStatus) || 'ACTIVE',
+        eligible_voters_count: data.eligible_voters_count || 0,
+        votes_count: data.votes_count || 0,
+        start_at: data.start_at || new Date().toISOString(),
+        end_at: data.end_at || new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+        department_name: data.department_name || 'All Departments',
+        academic_year: data.academic_year || '2026-2027',
+        created_at: data.created_at,
+      };
+    }
+  } catch (err) {
+    console.error('Error fetching election by id:', err);
+  }
+  return null;
 }
 
 export function computeSummaryStats(elections: Election[]): DashboardSummaryStats {
   const activeElection = elections.find((e) => e.status === 'ACTIVE') || elections[0];
+  if (!activeElection) {
+    return {
+      eligibleVoters: 0,
+      votesCast: 0,
+      participationRate: 0,
+    };
+  }
 
-  const eligibleVoters = activeElection ? activeElection.eligible_voters_count : 1248;
-  const votesCast = activeElection ? activeElection.votes_count : 932;
+  const eligibleVoters = activeElection.eligible_voters_count || 0;
+  const votesCast = activeElection.votes_count || 0;
   const participationRate =
-    eligibleVoters > 0 ? parseFloat(((votesCast / eligibleVoters) * 100).toFixed(1)) : 74.7;
+    eligibleVoters > 0 ? parseFloat(((votesCast / eligibleVoters) * 100).toFixed(1)) : 0;
 
   return {
     eligibleVoters,

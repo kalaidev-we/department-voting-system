@@ -25,9 +25,9 @@ export function StaffDashboardPage({
   const { profile } = useAuth();
   const [elections, setElections] = useState<Election[]>([]);
   const [stats, setStats] = useState<DashboardSummaryStats>({
-    eligibleVoters: 1248,
-    votesCast: 932,
-    participationRate: 74.7,
+    eligibleVoters: 0,
+    votesCast: 0,
+    participationRate: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [hasVotedAsStaff, setHasVotedAsStaff] = useState(false);
@@ -52,7 +52,8 @@ export function StaffDashboardPage({
         setStats(computed);
 
         // Check if staff has voted in the active election
-        const voted = await hasStudentVoted('el-001', voterId);
+        const activeEl = list.find((e) => e.status === 'ACTIVE') || list[0];
+        const voted = activeEl ? await hasStudentVoted(activeEl.id, voterId) : false;
         setHasVotedAsStaff(voted);
       } catch (e) {
         console.warn('Error loading dashboard data:', e);
@@ -125,7 +126,8 @@ export function StaffDashboardPage({
             {hasVotedAsStaff ? (
               <button
                 onClick={() => {
-                  const receipt = getStoredReceipt('el-001', voterId);
+                  const activeElId = elections.find((e) => e.status === 'ACTIVE')?.id || elections[0]?.id || '';
+                  const receipt = activeElId ? getStoredReceipt(activeElId, voterId) : null;
                   if (receipt && onViewStaffReceipt) onViewStaffReceipt(receipt);
                   else onNavigateTab('staff_vote');
                 }}

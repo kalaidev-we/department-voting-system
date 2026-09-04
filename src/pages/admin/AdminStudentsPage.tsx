@@ -113,40 +113,50 @@ export function AdminStudentsPage({ onBack }: AdminStudentsPageProps) {
           </div>
 
           <div className="divide-y divide-slate-100">
-            {filtered.map((student) => (
-              <div
-                key={student.id}
-                className="p-3.5 sm:p-4 hover:bg-slate-50 flex items-center justify-between gap-3 transition-colors"
-              >
-                <div className="flex items-center space-x-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 font-bold text-xs flex items-center justify-center shrink-0">
-                    {student.course_code}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center space-x-2">
-                      <h4 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
-                        {student.full_name}
-                      </h4>
-                      <span className="px-2 py-0.2 rounded-md bg-slate-100 text-slate-700 font-mono text-[10px] font-bold">
-                        {student.student_id}
-                      </span>
-                      {student.admission_type === 'LATERAL' && (
-                        <span className="px-1.5 py-0.2 rounded-md bg-amber-50 text-amber-700 text-[9px] font-extrabold">
-                          LATERAL
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-slate-400 truncate mt-0.5">
-                      {student.department} &bull; {student.year} &bull; {student.email}
-                    </p>
-                  </div>
-                </div>
-
-                <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold shrink-0">
-                  Eligible
-                </span>
+            {filtered.length === 0 ? (
+              <div className="p-8 text-center space-y-2">
+                <Users className="w-8 h-8 text-slate-300 mx-auto" />
+                <h4 className="text-sm font-bold text-slate-800">No Student Records Found</h4>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  No student voters have been imported or registered in the database yet. Click "Import CSV" above to bulk-register students.
+                </p>
               </div>
-            ))}
+            ) : (
+              filtered.map((student) => (
+                <div
+                  key={student.id}
+                  className="p-3.5 sm:p-4 hover:bg-slate-50 flex items-center justify-between gap-3 transition-colors"
+                >
+                  <div className="flex items-center space-x-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 font-bold text-xs flex items-center justify-center shrink-0">
+                      {student.course_code}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center space-x-2">
+                        <h4 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
+                          {student.full_name}
+                        </h4>
+                        <span className="px-2 py-0.2 rounded-md bg-slate-100 text-slate-700 font-mono text-[10px] font-bold">
+                          {student.student_id}
+                        </span>
+                        {student.admission_type === 'LATERAL' && (
+                          <span className="px-1.5 py-0.2 rounded-md bg-amber-50 text-amber-700 text-[9px] font-extrabold">
+                            LATERAL
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                        {student.department} &bull; {student.year} &bull; {student.email}
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold shrink-0">
+                    Eligible
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </main>

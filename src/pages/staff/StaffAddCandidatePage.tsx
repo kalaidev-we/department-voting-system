@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { addStaffCandidate } from '../../services/votingService';
+import { fetchStaffElections } from '../../services/electionService';
+import { Election } from '../../lib/types';
 import {
   ChevronLeft,
   UserPlus,
@@ -36,13 +38,25 @@ const SAMPLE_PHOTOS = [
 ];
 
 export function StaffAddCandidatePage({ onBack, onSuccess }: StaffAddCandidatePageProps) {
-  const [electionId, setElectionId] = useState('el-001');
+  const [elections, setElections] = useState<Election[]>([]);
+  const [electionId, setElectionId] = useState('');
   const [name, setName] = useState('');
   const [studentId, setStudentId] = useState('');
   const [department, setDepartment] = useState('Cybersecurity Department');
   const [slogan, setSlogan] = useState('');
   const [manifesto, setManifesto] = useState('');
   const [symbol, setSymbol] = useState(SYMBOL_OPTIONS[0]);
+
+  useEffect(() => {
+    async function loadElections() {
+      const list = await fetchStaffElections();
+      setElections(list);
+      if (list.length > 0) {
+        setElectionId(list[0].id);
+      }
+    }
+    loadElections();
+  }, []);
   const [photoUrl, setPhotoUrl] = useState(SAMPLE_PHOTOS[0].url);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -109,14 +123,23 @@ export function StaffAddCandidatePage({ onBack, onSuccess }: StaffAddCandidatePa
             <label className="text-xs font-bold text-slate-700 block">
               Election Contest
             </label>
-            <select
-              value={electionId}
-              onChange={(e) => setElectionId(e.target.value)}
-              className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 font-semibold focus:outline-none focus:border-brand-500"
-            >
-              <option value="el-001">Cybersecurity Association President (Active)</option>
-              <option value="el-002">Student Council General Secretary (Scheduled)</option>
-            </select>
+            {elections.length === 0 ? (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+                No elections found in database. Create an election first before adding candidates.
+              </div>
+            ) : (
+              <select
+                value={electionId}
+                onChange={(e) => setElectionId(e.target.value)}
+                className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 font-semibold focus:outline-none focus:border-brand-500"
+              >
+                {elections.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.title} ({e.status})
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* Candidate Name & Roll ID */}

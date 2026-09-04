@@ -15,7 +15,7 @@ export function StaffCandidatesPage({ onNavigateTab }: StaffCandidatesPageProps)
 
   useEffect(() => {
     async function load() {
-      const data = await fetchCandidates('el-001');
+      const data = await fetchCandidates();
       setCandidates(data);
     }
     load();
@@ -66,7 +66,20 @@ export function StaffCandidatesPage({ onNavigateTab }: StaffCandidatesPageProps)
 
         {/* Candidates List */}
         <div className="space-y-3">
-          {filtered.map((candidate) => (
+          {filtered.length === 0 ? (
+            <div className="p-8 rounded-2xl bg-white border border-slate-200/80 shadow-xs text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-brand-600 flex items-center justify-center mx-auto">
+                <Award className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-slate-800">No Candidates Found</h4>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                  No candidate profiles match your search or exist in the database. Use "Add Candidate" to register nominees.
+                </p>
+              </div>
+            </div>
+          ) : (
+            filtered.map((candidate) => (
             <div
               key={candidate.id}
               className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-3"
@@ -119,8 +132,9 @@ export function StaffCandidatesPage({ onNavigateTab }: StaffCandidatesPageProps)
                 </span>
               </div>
             </div>
-          ))}
-        </div>
+          ))
+        )}
+      </div>
       </main>
 
       <StaffBottomNav activeTab="candidates" onTabChange={onNavigateTab} />

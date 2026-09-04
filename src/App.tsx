@@ -103,7 +103,6 @@ function ApplicationRouter() {
         rejectedEmail={domainError}
         onTryAnotherAccount={() => {
           clearDomainError();
-          signInWithGoogle();
         }}
         onBackToLogin={() => {
           clearDomainError();

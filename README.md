@@ -54,7 +54,7 @@ SecureVote Campus replaces traditional paper and insecure online polls with an e
 
 ### 2. Domain-Enforced College Authentication
 - **Strict Domain Gatekeeping**: Only official institutional Google accounts ending with `@kpriet.ac.in` can authenticate.
-- **Master Admin Bypass**: Designated Super Administrator account (`skalaiarasu3@gmail.com`) is exempt from domain rejection and granted full governance privileges.
+- **Master Admin Bypass**: Designated Super Administrator account is exempt from institutional domain rejection and granted full governance privileges.
 - **Dual Login Methods**:
   - **Google SSO**: Instant authentication for students and faculty.
   - **Institutional Credentials**: Direct password authentication for Master Admin and staff administrators.
@@ -190,21 +190,21 @@ Generates production-optimized static assets in the `dist/` folder.
 
 ---
 
-## 🔐 Master Administrator Credentials
+## 🔐 Master Administrator Access
 
-A pre-configured Master Admin account is initialized in `database.sql`:
+The initial Super Administrator account is configured securely in `database.sql` (Section 12).
 
-- **Email:** `skalaiarasu3@gmail.com`
-- **Password:** `Kalai@125`
-- **Role:** `SUPER_ADMIN`
-
-### How to Sign In as Master Admin
+### Accessing the Master Governance Console
 1. Open the application at [http://localhost:5173](http://localhost:5173).
 2. Click the **Admin & Faculty** tab on the login card.
-3. Enter the email and password above.
-4. Click **Sign In with Credentials** to access the Master Governance Dashboard.
+3. Sign in using your configured administrator credentials or authorized administrator Google account.
+4. Upon authentication, users with the `SUPER_ADMIN` role are automatically routed to the Master Governance Dashboard.
+
+> [!TIP]
+> Administrators can manage faculty permissions, candidate nominations, student rosters, and view tamper-evident cryptographic audit logs directly from the Master Governance Console.
 
 ---
+
 
 ## 🔒 Security & Privacy Guarantees
 

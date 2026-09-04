@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { submitCandidateApplication } from '../../services/candidateService';
 import { fetchStaffElections } from '../../services/electionService';
+import { extractStudentIdFromEmail } from '../../lib/studentParser';
 import { Election } from '../../lib/types';
 import {
   ChevronLeft,
@@ -77,12 +78,14 @@ export function CandidateApplyPage({ onBack, onSuccess }: CandidateApplyPageProp
 
     setIsSubmitting(true);
 
+    const derivedRoll = (profile?.student_id || extractStudentIdFromEmail(profile?.email) || '26SCL03').toUpperCase();
+
     const result = await submitCandidateApplication({
       election_id: electionId,
       election_title: selectedElection?.title || 'Campus Election',
-      student_id: profile?.student_id || profile?.id || '26SCL03',
+      student_id: derivedRoll,
       user_id: profile?.id,
-      roll_number: profile?.student_id || '26SCL03',
+      roll_number: derivedRoll,
       full_name: profile?.full_name || 'KPRIET Student',
       email: profile?.email || '26scl03@kpriet.ac.in',
       department: profile?.department_name || 'Cybersecurity Department',

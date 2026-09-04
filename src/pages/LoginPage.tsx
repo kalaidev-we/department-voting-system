@@ -21,7 +21,6 @@ import {
   CheckCircle2,
   User,
   KeyRound,
-  Sparkles,
 } from 'lucide-react';
 
 export function LoginPage() {
@@ -117,31 +116,6 @@ export function LoginPage() {
         }
       }
     }
-  };
-
-  // Quick 1-Click Profile Fillers
-  const fillStudent = () => {
-    setEmail('26scl03@kpriet.ac.in');
-    setPassword('kprietsckalai');
-    setFullName('Student Voter (26SCL03)');
-    setFormError(null);
-    setSuccessMessage(null);
-  };
-
-  const fillStaff = () => {
-    setEmail('staff.cse@kpriet.ac.in');
-    setPassword('kprietsckalai');
-    setFullName('Dr. Ramanathan K (Staff Admin)');
-    setFormError(null);
-    setSuccessMessage(null);
-  };
-
-  const fillAdmin = () => {
-    setEmail('skalaiarasu3@gmail.com');
-    setPassword('kprietsckalai');
-    setFullName('Kalai Arasu (Master Admin)');
-    setFormError(null);
-    setSuccessMessage(null);
   };
 
   const handleUnauthorizedSignOut = async () => {
@@ -311,39 +285,6 @@ export function LoginPage() {
                 >
                   Magic Link
                 </button>
-              </div>
-
-              {/* Quick 1-Click Fast Profile Switchers */}
-              <div className="mb-4 p-2.5 rounded-2xl bg-slate-50 border border-slate-200/80">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-amber-500" />
-                    <span>1-Click Test Access:</span>
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-1.5">
-                  <button
-                    type="button"
-                    onClick={fillStudent}
-                    className="py-1 px-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-brand-700 text-[10px] font-bold border border-blue-200/70 transition-colors cursor-pointer text-center truncate"
-                  >
-                    🎓 Student
-                  </button>
-                  <button
-                    type="button"
-                    onClick={fillStaff}
-                    className="py-1 px-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 text-[10px] font-bold border border-purple-200/70 transition-colors cursor-pointer text-center truncate"
-                  >
-                    👨‍🏫 Staff
-                  </button>
-                  <button
-                    type="button"
-                    onClick={fillAdmin}
-                    className="py-1 px-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold border border-indigo-200/70 transition-colors cursor-pointer text-center truncate"
-                  >
-                    👑 Super Admin
-                  </button>
-                </div>
               </div>
 
               {/* Main Auth Form */}

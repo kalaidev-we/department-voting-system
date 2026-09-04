@@ -17,7 +17,7 @@ export function StaffBottomNav({ activeTab, onTabChange }: StaffBottomNavProps) 
   return (
     <nav
       aria-label="Staff navigation"
-      className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-2 py-1 select-none"
+      className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-2 py-1 pb-[calc(0.25rem+env(safe-area-inset-bottom))] select-none"
     >
       <div className="max-w-md mx-auto grid grid-cols-4 items-center">
         {tabs.map((tab) => {

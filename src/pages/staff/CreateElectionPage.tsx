@@ -64,7 +64,7 @@ export function CreateElectionPage({ onBack, onCreated }: CreateElectionPageProp
   return (
     <div className="min-h-screen w-full bg-slate-50 flex flex-col select-none antialiased">
       {/* Top Header */}
-      <header className="w-full bg-white border-b border-slate-200/80 sticky top-0 z-30 px-4 sm:px-6 py-3.5 flex items-center justify-between shadow-2xs">
+      <header className="w-full bg-white border-b border-slate-200/80 sticky top-0 z-30 px-3.5 sm:px-6 py-3.5 flex items-center justify-between shadow-2xs">
         <button
           onClick={onBack}
           className="flex items-center space-x-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors p-1 -ml-1 rounded-lg cursor-pointer"
@@ -77,8 +77,8 @@ export function CreateElectionPage({ onBack, onCreated }: CreateElectionPageProp
       </header>
 
       {/* Main Content Form */}
-      <main className="flex-1 w-full max-w-xl mx-auto px-4 py-6 sm:py-8">
-        <div className="bg-white rounded-3xl p-5 sm:p-7 shadow-sm border border-slate-200/80 space-y-5">
+      <main className="flex-1 w-full max-w-xl mx-auto px-3.5 sm:px-6 py-5 sm:py-8">
+        <div className="bg-white rounded-3xl p-4 sm:p-7 shadow-sm border border-slate-200/80 space-y-5">
           <div>
             <div className="w-10 h-10 rounded-xl bg-blue-50 text-indigo-600 flex items-center justify-center mb-2.5">
               <Vote className="w-5 h-5" />

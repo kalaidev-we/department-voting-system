@@ -26,6 +26,8 @@ export interface UserProfile {
   year?: string;
   section?: string;
   phone?: string;
+  phone_number?: string;
+  bio?: string;
   is_active: boolean;
   is_profile_complete: boolean;
   created_at?: string;

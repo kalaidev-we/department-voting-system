@@ -77,19 +77,19 @@ export function AdminAddStaffPage({ onBack, onSuccess }: AdminAddStaffPageProps)
   return (
     <div className="min-h-screen w-full bg-slate-50 flex flex-col select-none antialiased">
       {/* Top Header */}
-      <header className="w-full bg-white border-b border-slate-200 sticky top-0 z-20 px-4 sm:px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
+      <header className="w-full bg-white border-b border-slate-200 sticky top-0 z-20 px-3.5 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between">
+        <div className="flex items-center space-x-2 min-w-0">
           <button
             onClick={onBack}
-            className="w-9 h-9 -ml-1 rounded-xl flex items-center justify-center text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+            className="w-8 h-8 sm:w-9 sm:h-9 -ml-1 rounded-xl flex items-center justify-center text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <div>
-            <h1 className="text-sm sm:text-base font-bold text-slate-900 leading-none">
+          <div className="min-w-0">
+            <h1 className="text-xs sm:text-base font-bold text-slate-900 leading-none truncate">
               Enroll Staff & Faculty Officer
             </h1>
-            <p className="text-[10px] text-slate-400 mt-0.5">
+            <p className="text-[9px] sm:text-[10px] text-slate-400 mt-0.5 truncate">
               Assign administrative permissions and voting credentials
             </p>
           </div>
@@ -97,7 +97,7 @@ export function AdminAddStaffPage({ onBack, onSuccess }: AdminAddStaffPageProps)
       </header>
 
       {/* Main Content Form */}
-      <main className="flex-1 w-full max-w-xl mx-auto px-4 sm:px-6 py-6">
+      <main className="flex-1 w-full max-w-xl mx-auto px-3.5 sm:px-6 py-5 sm:py-6">
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Full Name */}
           <div className="space-y-1.5">
@@ -212,7 +212,7 @@ export function AdminAddStaffPage({ onBack, onSuccess }: AdminAddStaffPageProps)
             <label className="text-xs font-bold text-slate-700 block">
               Administrative Capabilities
             </label>
-            <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
               {[
                 { id: 'create_election', label: 'Schedule Elections' },
                 { id: 'manage_candidates', label: 'Add & Manage Candidates' },

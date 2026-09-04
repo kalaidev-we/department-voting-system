@@ -110,7 +110,7 @@ export function ElectionCard({ election, onClick }: ElectionCardProps) {
       </div>
 
       {/* Metrics Row: Eligible vs Votes Cast & Timer */}
-      <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
+      <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
         <div className="flex items-center space-x-3">
           <span className="font-semibold text-slate-800">
             {election.eligible_voters_count.toLocaleString()}{' '}

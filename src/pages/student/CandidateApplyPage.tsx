@@ -153,7 +153,7 @@ export function CandidateApplyPage({ onBack, onSuccess }: CandidateApplyPageProp
   return (
     <div className="min-h-screen w-full bg-slate-50 flex flex-col select-none antialiased">
       {/* Top Header */}
-      <header className="w-full bg-white border-b border-slate-200/80 sticky top-0 z-20 px-4 sm:px-6 py-3 flex items-center justify-between">
+      <header className="w-full bg-white border-b border-slate-200/80 sticky top-0 z-20 px-3 sm:px-6 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <button
             onClick={onBack}
@@ -173,7 +173,7 @@ export function CandidateApplyPage({ onBack, onSuccess }: CandidateApplyPageProp
       </header>
 
       {/* Main Content Form */}
-      <main className="flex-1 w-full max-w-xl mx-auto px-4 sm:px-6 py-6">
+      <main className="flex-1 w-full max-w-xl mx-auto px-3.5 sm:px-6 py-5 sm:py-6">
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Verified Student Credentials Banner */}
           <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex items-center space-x-3.5">

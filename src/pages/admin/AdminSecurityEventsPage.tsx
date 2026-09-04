@@ -37,19 +37,19 @@ export function AdminSecurityEventsPage({ onBack }: AdminSecurityEventsPageProps
   return (
     <div className="min-h-screen w-full bg-slate-50 flex flex-col select-none antialiased">
       {/* Top Header */}
-      <header className="w-full bg-white border-b border-slate-200 sticky top-0 z-20 px-4 sm:px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
+      <header className="w-full bg-white border-b border-slate-200 sticky top-0 z-20 px-3.5 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between">
+        <div className="flex items-center space-x-2 min-w-0">
           <button
             onClick={onBack}
-            className="w-9 h-9 -ml-1 rounded-xl flex items-center justify-center text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+            className="w-8 h-8 sm:w-9 sm:h-9 -ml-1 rounded-xl flex items-center justify-center text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <div>
-            <h1 className="text-sm sm:text-base font-bold text-slate-900 leading-none">
+          <div className="min-w-0">
+            <h1 className="text-xs sm:text-base font-bold text-slate-900 leading-none truncate">
               Domain Guard & Security Incidents
             </h1>
-            <p className="text-[10px] text-slate-400 mt-0.5">
+            <p className="text-[9px] sm:text-[10px] text-slate-400 mt-0.5 truncate">
               Access control enforcement & domain violation monitoring
             </p>
           </div>
@@ -57,18 +57,18 @@ export function AdminSecurityEventsPage({ onBack }: AdminSecurityEventsPageProps
       </header>
 
       {/* Main Container */}
-      <main className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-5 space-y-5">
+      <main className="flex-1 w-full max-w-4xl mx-auto px-3.5 sm:px-6 py-4 sm:py-5 space-y-4">
         {/* Domain Enforcement Status Banner */}
-        <div className="p-5 rounded-3xl bg-gradient-to-br from-rose-900 to-slate-900 text-white shadow-xl shadow-rose-950/20 space-y-3">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center">
-              <ShieldAlert className="w-6 h-6" />
+        <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-rose-900 to-slate-900 text-white shadow-xl shadow-rose-950/20 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center shrink-0">
+              <ShieldAlert className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <h3 className="text-base font-bold text-white">
+            <div className="min-w-0">
+              <h3 className="text-sm sm:text-base font-bold text-white truncate">
                 Active Domain Perimeter: @kpriet.ac.in
               </h3>
-              <p className="text-xs text-rose-200/80">
+              <p className="text-[11px] sm:text-xs text-rose-200/80 leading-relaxed">
                 All OAuth callbacks non-conforming to the collegiate institutional domain are permanently blocked.
               </p>
             </div>
@@ -83,7 +83,7 @@ export function AdminSecurityEventsPage({ onBack }: AdminSecurityEventsPageProps
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search security incidents by email or description..."
-            className="w-full h-10 pl-9 pr-4 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-rose-500"
+            className="w-full h-10 pl-9 pr-4 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-rose-500 shadow-xs"
           />
         </div>
 
@@ -109,9 +109,9 @@ export function AdminSecurityEventsPage({ onBack }: AdminSecurityEventsPageProps
               </div>
             ) : (
               filtered.map((evt) => (
-                <div key={evt.id} className="p-4 hover:bg-slate-50 transition-colors space-y-2 text-xs">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
+                <div key={evt.id} className="p-3.5 sm:p-4 hover:bg-slate-50 transition-colors space-y-1.5 text-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       <span className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 font-mono font-bold text-[10px]">
                         {evt.event_type}
                       </span>
@@ -126,21 +126,21 @@ export function AdminSecurityEventsPage({ onBack }: AdminSecurityEventsPageProps
                       </span>
                     </div>
 
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-[10px] sm:text-[11px] text-slate-400 shrink-0">
                       {new Date(evt.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
 
-                  <p className="text-slate-700 leading-relaxed font-medium">
+                  <p className="text-slate-700 leading-relaxed font-medium text-[11px] sm:text-xs">
                     {evt.description}
                   </p>
 
-                  <div className="flex items-center space-x-3 text-[10px] text-slate-400 font-mono">
+                  <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-400 font-mono pt-0.5">
                     <span>Source IP: {evt.ip_address}</span>
                     {evt.source_email && (
                       <>
                         <span>&bull;</span>
-                        <span>Target: {evt.source_email}</span>
+                        <span className="truncate max-w-[220px]">Target: {evt.source_email}</span>
                       </>
                     )}
                   </div>

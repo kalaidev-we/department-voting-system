@@ -40,11 +40,11 @@ export function StaffElectionsPage({
   });
 
   return (
-    <div className="min-h-screen w-full bg-slate-50 flex flex-col pb-20 select-none">
+    <div className="min-h-screen w-full bg-slate-50 flex flex-col pb-24 sm:pb-20 select-none">
       <StaffHeader onNavigate={onNavigateTab} />
 
-      <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-5 sm:py-7 space-y-5">
-        <div className="flex items-center justify-between">
+      <main className="flex-1 w-full max-w-3xl mx-auto px-3.5 sm:px-6 py-5 sm:py-7 space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
               Manage Elections
@@ -56,7 +56,7 @@ export function StaffElectionsPage({
 
           <button
             onClick={() => onNavigateTab('create_election')}
-            className="h-9 px-3.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-xs cursor-pointer"
+            className="self-start sm:self-center h-9 px-3.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-xs cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>New Election</span>

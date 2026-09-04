@@ -80,10 +80,10 @@ export function StaffApplicationsPage({ onNavigateTab }: StaffApplicationsPagePr
   });
 
   return (
-    <div className="min-h-screen w-full bg-slate-50 flex flex-col pb-20 select-none antialiased">
+    <div className="min-h-screen w-full bg-slate-50 flex flex-col pb-24 sm:pb-20 select-none antialiased">
       <StaffHeader onNavigate={onNavigateTab} />
 
-      <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-5 space-y-5">
+      <main className="flex-1 w-full max-w-3xl mx-auto px-3.5 sm:px-6 py-5 space-y-5">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
@@ -192,11 +192,11 @@ export function StaffApplicationsPage({ onNavigateTab }: StaffApplicationsPagePr
 
                 {/* Actions for Pending Applications */}
                 {(app.status === 'UNDER_REVIEW' || app.status === 'SUBMITTED') && (
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-end space-x-2">
+                  <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-end gap-2">
                     <button
                       onClick={() => setRejectModalApp(app)}
                       disabled={isProcessing}
-                      className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-colors cursor-pointer"
+                      className="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-colors cursor-pointer text-center"
                     >
                       Reject Nomination
                     </button>
@@ -204,7 +204,7 @@ export function StaffApplicationsPage({ onNavigateTab }: StaffApplicationsPagePr
                     <button
                       onClick={() => handleApprove(app)}
                       disabled={isProcessing}
-                      className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                      className="w-full sm:w-auto px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer text-center"
                     >
                       Approve & Add to Ballot
                     </button>

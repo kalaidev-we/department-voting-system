@@ -1,9 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AuthenticateWithRedirectCallback } from '@clerk/clerk-react';
 import { LoginPage } from './pages/LoginPage';
 import { DomainErrorScreen } from './components/auth/DomainErrorScreen';
 import { ProfileCompletionPage } from './pages/ProfileCompletionPage';
+
+// Common System & User Pages
+import { ProfilePage } from './pages/common/ProfilePage';
+import { SettingsPage } from './pages/common/SettingsPage';
+import { HelpSupportPage } from './pages/common/HelpSupportPage';
+import { NotFoundPage } from './pages/common/NotFoundPage';
+import { OfflinePage } from './pages/common/OfflinePage';
+import { ErrorPage } from './pages/common/ErrorPage';
+import { SlowInternetPage } from './pages/common/SlowInternetPage';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 // Staff Admin Pages
 import { StaffDashboardPage } from './pages/staff/StaffDashboardPage';
@@ -32,7 +42,7 @@ import { AdminAuditLogsPage } from './pages/admin/AdminAuditLogsPage';
 import { AdminSecurityEventsPage } from './pages/admin/AdminSecurityEventsPage';
 
 import { VoteReceipt, Election } from './lib/types';
-import { Shield } from 'lucide-react';
+import { Shield, WifiOff } from 'lucide-react';
 
 function ApplicationRouter() {
   const {
@@ -91,6 +101,47 @@ function ApplicationRouter() {
   const [adminReceipt, setAdminReceipt] = useState<VoteReceipt | null>(null);
   const [selectedElectionForEdit, setSelectedElectionForEdit] = useState<Election | null>(null);
 
+  // Global / Common Navigation states (Profile, Settings, Help, 404, Offline, Error, Slow Internet)
+  const [commonView, setCommonView] = useState<
+    null | 'profile' | 'settings' | 'help' | '404' | 'offline' | 'error' | 'slow_internet'
+  >(null);
+  const [isOffline, setIsOffline] = useState<boolean>(!navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Helper to optionally wrap content with connectivity banner when offline
+  const wrapWithOfflineBanner = (content: React.ReactElement) => {
+    if (!isOffline || commonView === 'offline') return content;
+    return (
+      <div className="min-h-screen w-full flex flex-col">
+        <div className="bg-amber-600 text-white text-xs font-semibold px-4 py-2 flex items-center justify-between shadow-md sticky top-0 z-50 select-none">
+          <div className="flex items-center space-x-2">
+            <WifiOff className="w-4 h-4 shrink-0" />
+            <span>You are currently offline. Real-time voting sync will resume once reconnected.</span>
+          </div>
+          <button
+            onClick={() => setCommonView('offline')}
+            className="underline hover:text-amber-100 cursor-pointer font-bold text-xs ml-4 shrink-0"
+          >
+            Check Status
+          </button>
+        </div>
+        <div className="flex-1 flex flex-col">{content}</div>
+      </div>
+    );
+  };
+
   // Handle Clerk SSO redirect callback
   if (window.location.pathname.startsWith('/sso-callback')) {
     return <AuthenticateWithRedirectCallback signUpForceRedirectUrl="/" signInForceRedirectUrl="/" />;
@@ -131,14 +182,84 @@ function ApplicationRouter() {
     );
   }
 
+  // Check if URL is an unknown path that should trigger 404
+  const isUnknownRoute =
+    window.location.pathname !== '/' &&
+    !window.location.pathname.startsWith('/sso-callback');
+
+  // Common View Screens (404, Offline, Error, Slow Internet, Help, Settings, Profile)
+  if (commonView === '404' || isUnknownRoute) {
+    return wrapWithOfflineBanner(
+      <NotFoundPage
+        onBackToHome={() => {
+          if (window.location.pathname !== '/') {
+            window.history.pushState({}, '', '/');
+          }
+          setCommonView(null);
+        }}
+        onOpenHelp={() => setCommonView('help')}
+      />
+    );
+  }
+
+  if (commonView === 'offline') {
+    return (
+      <OfflinePage
+        onRetryConnection={() => {
+          if (navigator.onLine) {
+            setIsOffline(false);
+            setCommonView(null);
+          }
+        }}
+        onBackToHome={() => setCommonView(null)}
+      />
+    );
+  }
+
+  if (commonView === 'error') {
+    return wrapWithOfflineBanner(
+      <ErrorPage
+        onResetError={() => setCommonView(null)}
+        onBackToHome={() => setCommonView(null)}
+      />
+    );
+  }
+
+  if (commonView === 'slow_internet') {
+    return wrapWithOfflineBanner(
+      <SlowInternetPage
+        onRetry={() => setCommonView(null)}
+        onContinueLowBandwidth={() => setCommonView(null)}
+        onBackToHome={() => setCommonView(null)}
+      />
+    );
+  }
+
+  if (commonView === 'help') {
+    return wrapWithOfflineBanner(<HelpSupportPage onBack={() => setCommonView(null)} />);
+  }
+
   // 3. Unauthenticated -> Show pristine Login Page
   if (!isAuthenticated || !profile) {
-    return <LoginPage />;
+    return wrapWithOfflineBanner(<LoginPage />);
+  }
+
+  if (commonView === 'settings') {
+    return wrapWithOfflineBanner(
+      <SettingsPage
+        onBack={() => setCommonView(null)}
+        onSimulatePage={(type) => setCommonView(type)}
+      />
+    );
+  }
+
+  if (commonView === 'profile') {
+    return wrapWithOfflineBanner(<ProfilePage onBack={() => setCommonView(null)} />);
   }
 
   // 4. Student onboarding (Profile completion) if required fields are missing
   if (role === 'STUDENT' && !profile.is_profile_complete) {
-    return (
+    return wrapWithOfflineBanner(
       <ProfileCompletionPage
         onCompleted={() => {
           // Profile is complete, automatically navigates to student home
@@ -150,6 +271,14 @@ function ApplicationRouter() {
   // 5. Super Admin Governance Flow (All Staff + Institutional Governance Capabilities)
   if (role === 'SUPER_ADMIN') {
     const handleAdminNavigation = (tab: string) => {
+      if (tab === 'profile' || tab === 'settings' || tab === 'help') {
+        setCommonView(tab as any);
+        return;
+      }
+      if (tab === '404' || tab === 'offline' || tab === 'error' || tab === 'slow_internet') {
+        setCommonView(tab as any);
+        return;
+      }
       if (tab === 'home' || tab === 'admin_home') setAdminTab('home');
       else if (tab === 'elections') setAdminTab('admin_elections');
       else if (tab === 'create_election') setAdminTab('admin_create_election');
@@ -166,7 +295,7 @@ function ApplicationRouter() {
 
     // Election Governance & CRUD
     if (adminTab === 'admin_elections') {
-      return (
+      return wrapWithOfflineBanner(
         <AdminElectionsPage
           onBack={() => setAdminTab('home')}
           onCreateElection={() => setAdminTab('admin_create_election')}
@@ -178,7 +307,7 @@ function ApplicationRouter() {
       );
     }
     if (adminTab === 'admin_create_election') {
-      return (
+      return wrapWithOfflineBanner(
         <CreateElectionPage
           onBack={() => setAdminTab('admin_elections')}
           onCreated={() => setAdminTab('admin_elections')}
@@ -186,7 +315,7 @@ function ApplicationRouter() {
       );
     }
     if (adminTab === 'admin_edit_election' && selectedElectionForEdit) {
-      return (
+      return wrapWithOfflineBanner(
         <AdminEditElectionPage
           election={selectedElectionForEdit}
           onBack={() => setAdminTab('admin_elections')}
@@ -197,14 +326,14 @@ function ApplicationRouter() {
 
     // Staff Capabilities for Super Admin: Candidates Management
     if (adminTab === 'admin_candidates') {
-      return (
+      return wrapWithOfflineBanner(
         <StaffCandidatesPage
           onNavigateTab={handleAdminNavigation}
         />
       );
     }
     if (adminTab === 'admin_add_candidate') {
-      return (
+      return wrapWithOfflineBanner(
         <StaffAddCandidatePage
           onBack={() => setAdminTab('admin_candidates')}
           onSuccess={() => setAdminTab('admin_candidates')}
@@ -214,7 +343,7 @@ function ApplicationRouter() {
 
     // Staff Capabilities for Super Admin: Nomination Applications
     if (adminTab === 'admin_applications') {
-      return (
+      return wrapWithOfflineBanner(
         <StaffApplicationsPage
           onNavigateTab={handleAdminNavigation}
         />
@@ -223,7 +352,7 @@ function ApplicationRouter() {
 
     // Staff Capabilities for Super Admin: Analytics & Live Tallies
     if (adminTab === 'admin_analytics') {
-      return (
+      return wrapWithOfflineBanner(
         <StaffAnalyticsPage
           onNavigateTab={handleAdminNavigation}
         />
@@ -232,7 +361,7 @@ function ApplicationRouter() {
 
     // Staff Capabilities for Super Admin: Reports & CSV Export
     if (adminTab === 'admin_reports') {
-      return (
+      return wrapWithOfflineBanner(
         <StaffReportsPage
           onNavigateTab={handleAdminNavigation}
         />
@@ -241,7 +370,7 @@ function ApplicationRouter() {
 
     // Staff Capabilities for Super Admin: Staff Dashboard Console View
     if (adminTab === 'admin_staff_console') {
-      return (
+      return wrapWithOfflineBanner(
         <StaffDashboardPage
           onNavigateTab={handleAdminNavigation}
           onViewStaffReceipt={(receipt) => {
@@ -254,7 +383,7 @@ function ApplicationRouter() {
 
     // Super Admin Casting Vote
     if (adminTab === 'admin_vote') {
-      return (
+      return wrapWithOfflineBanner(
         <VotingPage
           electionId={activeElectionId || 'el-001'}
           onBack={() => setAdminTab('home')}
@@ -268,7 +397,7 @@ function ApplicationRouter() {
 
     // Super Admin Viewing Digital Receipt
     if (adminTab === 'admin_receipt' && adminReceipt) {
-      return (
+      return wrapWithOfflineBanner(
         <VoteSuccessPage
           receipt={adminReceipt}
           onDone={() => setAdminTab('home')}
@@ -278,7 +407,7 @@ function ApplicationRouter() {
 
     // Super Admin Institutional Governance Consoles
     if (adminTab === 'admin_staff') {
-      return (
+      return wrapWithOfflineBanner(
         <AdminStaffPage
           onBack={() => setAdminTab('home')}
           onAddNewStaff={() => setAdminTab('admin_add_staff')}
@@ -286,7 +415,7 @@ function ApplicationRouter() {
       );
     }
     if (adminTab === 'admin_add_staff') {
-      return (
+      return wrapWithOfflineBanner(
         <AdminAddStaffPage
           onBack={() => setAdminTab('admin_staff')}
           onSuccess={() => setAdminTab('admin_staff')}
@@ -294,15 +423,15 @@ function ApplicationRouter() {
       );
     }
     if (adminTab === 'admin_students') {
-      return <AdminStudentsPage onBack={() => setAdminTab('home')} />;
+      return wrapWithOfflineBanner(<AdminStudentsPage onBack={() => setAdminTab('home')} />);
     }
     if (adminTab === 'admin_audit') {
-      return <AdminAuditLogsPage onBack={() => setAdminTab('home')} />;
+      return wrapWithOfflineBanner(<AdminAuditLogsPage onBack={() => setAdminTab('home')} />);
     }
     if (adminTab === 'admin_security') {
-      return <AdminSecurityEventsPage onBack={() => setAdminTab('home')} />;
+      return wrapWithOfflineBanner(<AdminSecurityEventsPage onBack={() => setAdminTab('home')} />);
     }
-    return (
+    return wrapWithOfflineBanner(
       <AdminDashboardPage
         onNavigateTab={handleAdminNavigation}
       />
@@ -311,8 +440,20 @@ function ApplicationRouter() {
 
   // 6. Staff Admin Flow
   if (role === 'STAFF_ADMIN') {
+    const handleStaffNavigation = (tab: string) => {
+      if (tab === 'profile' || tab === 'settings' || tab === 'help') {
+        setCommonView(tab as any);
+        return;
+      }
+      if (tab === '404' || tab === 'offline' || tab === 'error' || tab === 'slow_internet') {
+        setCommonView(tab as any);
+        return;
+      }
+      setStaffTab(tab as any);
+    };
+
     if (staffTab === 'create_election') {
-      return (
+      return wrapWithOfflineBanner(
         <CreateElectionPage
           onBack={() => setStaffTab('home')}
           onCreated={() => setStaffTab('elections')}
@@ -321,23 +462,23 @@ function ApplicationRouter() {
     }
 
     if (staffTab === 'elections') {
-      return (
+      return wrapWithOfflineBanner(
         <StaffElectionsPage
-          onNavigateTab={(tab: string) => setStaffTab(tab as any)}
+          onNavigateTab={handleStaffNavigation}
         />
       );
     }
 
     if (staffTab === 'candidates') {
-      return (
+      return wrapWithOfflineBanner(
         <StaffCandidatesPage
-          onNavigateTab={(tab: string) => setStaffTab(tab as any)}
+          onNavigateTab={handleStaffNavigation}
         />
       );
     }
 
     if (staffTab === 'add_candidate') {
-      return (
+      return wrapWithOfflineBanner(
         <StaffAddCandidatePage
           onBack={() => setStaffTab('candidates')}
           onSuccess={() => setStaffTab('candidates')}
@@ -346,32 +487,32 @@ function ApplicationRouter() {
     }
 
     if (staffTab === 'applications' || staffTab === 'more') {
-      return (
+      return wrapWithOfflineBanner(
         <StaffApplicationsPage
-          onNavigateTab={(tab: string) => setStaffTab(tab as any)}
+          onNavigateTab={handleStaffNavigation}
         />
       );
     }
 
     if (staffTab === 'analytics') {
-      return (
+      return wrapWithOfflineBanner(
         <StaffAnalyticsPage
-          onNavigateTab={(tab: string) => setStaffTab(tab as any)}
+          onNavigateTab={handleStaffNavigation}
         />
       );
     }
 
     if (staffTab === 'reports') {
-      return (
+      return wrapWithOfflineBanner(
         <StaffReportsPage
-          onNavigateTab={(tab: string) => setStaffTab(tab as any)}
+          onNavigateTab={handleStaffNavigation}
         />
       );
     }
 
     // Staff Member Casting Ballot
     if (staffTab === 'staff_vote') {
-      return (
+      return wrapWithOfflineBanner(
         <VotingPage
           electionId="el-001"
           onBack={() => setStaffTab('home')}
@@ -385,7 +526,7 @@ function ApplicationRouter() {
 
     // Staff Member Viewing Their Receipt
     if (staffTab === 'staff_receipt' && staffReceipt) {
-      return (
+      return wrapWithOfflineBanner(
         <VoteSuccessPage
           receipt={staffReceipt}
           onDone={() => setStaffTab('home')}
@@ -394,9 +535,9 @@ function ApplicationRouter() {
     }
 
     // Default: Staff Dashboard Home
-    return (
+    return wrapWithOfflineBanner(
       <StaffDashboardPage
-        onNavigateTab={(tab: string) => setStaffTab(tab as any)}
+        onNavigateTab={handleStaffNavigation}
         onViewStaffReceipt={(receipt) => {
           setStaffReceipt(receipt);
           setStaffTab('staff_receipt');
@@ -406,8 +547,20 @@ function ApplicationRouter() {
   }
 
   // 7. Student Flow
+  const handleStudentNavigation = (tab: string) => {
+    if (tab === 'profile' || tab === 'settings' || tab === 'help') {
+      setCommonView(tab as any);
+      return;
+    }
+    if (tab === '404' || tab === 'offline' || tab === 'error' || tab === 'slow_internet') {
+      setCommonView(tab as any);
+      return;
+    }
+    setStudentTab(tab as any);
+  };
+
   if (studentTab === 'vote') {
-    return (
+    return wrapWithOfflineBanner(
       <VotingPage
         electionId={activeElectionId}
         onBack={() => setStudentTab('home')}
@@ -420,7 +573,7 @@ function ApplicationRouter() {
   }
 
   if (studentTab === 'success' && activeReceipt) {
-    return (
+    return wrapWithOfflineBanner(
       <VoteSuccessPage
         receipt={activeReceipt}
         onDone={() => setStudentTab('home')}
@@ -429,7 +582,7 @@ function ApplicationRouter() {
   }
 
   if (studentTab === 'apply') {
-    return (
+    return wrapWithOfflineBanner(
       <CandidateApplyPage
         onBack={() => setStudentTab('home')}
         onSuccess={() => setStudentTab('home')}
@@ -438,7 +591,7 @@ function ApplicationRouter() {
   }
 
   // Default: Student Home Dashboard
-  return (
+  return wrapWithOfflineBanner(
     <StudentHomePage
       onEnterVotingBooth={(elId) => {
         setActiveElectionId(elId);
@@ -452,18 +605,21 @@ function ApplicationRouter() {
         setActiveReceipt(receipt);
         setStudentTab('success');
       }}
+      onNavigateTab={handleStudentNavigation}
     />
   );
 }
 
 export function App() {
   return (
-    <AuthProvider>
-      <div className="min-h-screen w-full bg-slate-50 flex flex-col relative">
-        {/* Application Content */}
-        <ApplicationRouter />
-      </div>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <div className="min-h-screen w-full bg-slate-50 flex flex-col relative">
+          {/* Application Content */}
+          <ApplicationRouter />
+        </div>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

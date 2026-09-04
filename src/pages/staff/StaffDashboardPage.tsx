@@ -68,18 +68,18 @@ export function StaffDashboardPage({
   const staffDepartment = profile?.department_name || 'Cybersecurity Department';
 
   return (
-    <div className="min-h-screen w-full bg-slate-50 flex flex-col pb-20 select-none antialiased">
+    <div className="min-h-screen w-full bg-slate-50 flex flex-col pb-24 sm:pb-20 select-none antialiased">
       {/* Top Staff Header */}
       <StaffHeader onNavigate={onNavigateTab} />
 
       {/* Main Content Container (Mobile-First + Max Width Centered on Desktop) */}
-      <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-5 sm:py-7 space-y-6">
+      <main className="flex-1 w-full max-w-3xl mx-auto px-3.5 sm:px-6 py-5 sm:py-7 space-y-6">
         {/* Welcome Greeting Section */}
         <section className="space-y-1">
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             {getGreeting()}, {staffName}
           </h1>
-          <p className="text-xs sm:text-sm font-semibold text-slate-500 flex items-center gap-1.5">
+          <p className="text-xs sm:text-sm font-semibold text-slate-500 flex flex-wrap items-center gap-1.5">
             <span>{staffDepartment}</span>
             <span className="text-slate-300">&bull;</span>
             <span className="text-brand-600 font-bold">Staff Admin & Voter</span>
@@ -122,7 +122,7 @@ export function StaffDashboardPage({
             </div>
           </div>
 
-          <div className="flex items-center space-x-2 self-end sm:self-center shrink-0">
+          <div className="flex items-center space-x-2 w-full sm:w-auto shrink-0">
             {hasVotedAsStaff ? (
               <button
                 onClick={() => {
@@ -131,7 +131,7 @@ export function StaffDashboardPage({
                   if (receipt && onViewStaffReceipt) onViewStaffReceipt(receipt);
                   else onNavigateTab('staff_vote');
                 }}
-                className="h-10 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer"
+                className="w-full sm:w-auto h-10 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer"
               >
                 <FileCheck className="w-4 h-4 text-slate-600" />
                 <span>View Receipt</span>
@@ -139,7 +139,7 @@ export function StaffDashboardPage({
             ) : (
               <button
                 onClick={() => onNavigateTab('staff_vote')}
-                className="h-10 px-4 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-sm shadow-brand-500/20 transition-colors cursor-pointer"
+                className="w-full sm:w-auto h-10 px-4 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 shadow-sm shadow-brand-500/20 transition-colors cursor-pointer"
               >
                 <Vote className="w-4 h-4" />
                 <span>Cast Staff Ballot</span>

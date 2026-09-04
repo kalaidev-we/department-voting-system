@@ -12,9 +12,9 @@ export function StaffHeader({ onNotificationClick, onNavigate }: StaffHeaderProp
   const { role } = useAuth();
 
   return (
-    <header className="w-full bg-white/95 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30 px-4 sm:px-8 py-3 flex items-center justify-between shadow-2xs select-none">
+    <header className="w-full bg-white/95 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30 px-3 sm:px-8 py-3 flex items-center justify-between shadow-2xs select-none">
       {/* Brand Logo & Super Admin Return Link */}
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center space-x-2 sm:space-x-3">
         <div 
           onClick={() => onNavigate && onNavigate(role === 'SUPER_ADMIN' ? 'admin_home' : 'home')}
           className="flex items-center space-x-2.5 cursor-pointer group"
@@ -37,10 +37,12 @@ export function StaffHeader({ onNotificationClick, onNavigate }: StaffHeaderProp
         {role === 'SUPER_ADMIN' && (
           <button
             onClick={() => onNavigate && onNavigate('admin_home')}
-            className="hidden sm:inline-flex items-center space-x-1 px-2.5 py-1 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold border border-purple-200 cursor-pointer transition-colors"
+            className="inline-flex items-center space-x-1 px-2 sm:px-2.5 py-1 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 text-[11px] sm:text-xs font-bold border border-purple-200 cursor-pointer transition-colors"
+            title="Return to Super Admin Governance Center"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Governance Center</span>
+            <span className="hidden sm:inline">Governance Center</span>
+            <span className="sm:hidden">Gov</span>
           </button>
         )}
       </div>

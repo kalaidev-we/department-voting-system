@@ -87,32 +87,32 @@ export function AdminEditElectionPage({
   return (
     <div className="min-h-screen w-full bg-slate-50 flex flex-col select-none antialiased">
       {/* Header */}
-      <header className="w-full bg-white border-b border-slate-200 sticky top-0 z-20 px-4 sm:px-6 py-3 flex items-center justify-between shadow-2xs">
+      <header className="w-full bg-white border-b border-slate-200 sticky top-0 z-20 px-3.5 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between shadow-2xs">
         <button
           onClick={onBack}
-          className="flex items-center space-x-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors p-1 -ml-1 rounded-lg cursor-pointer"
+          className="flex items-center space-x-1 sm:space-x-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors p-1 -ml-1 rounded-lg cursor-pointer"
         >
           <ChevronLeft className="w-4 h-4" />
-          <span>Back to Elections</span>
+          <span>Back<span className="hidden sm:inline"> to Elections</span></span>
         </button>
 
-        <span className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 text-[10px] font-extrabold uppercase tracking-wider border border-purple-100">
+        <span className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider border border-purple-100">
           SUPER ADMIN EDIT
         </span>
       </header>
 
       {/* Main Container */}
-      <main className="flex-1 w-full max-w-xl mx-auto px-4 py-6 sm:py-8">
-        <div className="bg-white rounded-3xl p-5 sm:p-7 shadow-xs border border-slate-200/80 space-y-5">
+      <main className="flex-1 w-full max-w-xl mx-auto px-3.5 sm:px-6 py-4 sm:py-8">
+        <div className="bg-white rounded-3xl p-4 sm:p-7 shadow-xs border border-slate-200/80 space-y-4 sm:space-y-5">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-              <Edit3 className="w-5 h-5" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+              <Edit3 className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
+              <h2 className="text-sm sm:text-lg font-bold text-slate-900 leading-tight">
                 Edit Election Parameters
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-[11px] sm:text-xs text-slate-400">
                 Modify title, schedules, eligible voters count, or voting status
               </p>
             </div>

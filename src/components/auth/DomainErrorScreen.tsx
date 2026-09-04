@@ -16,11 +16,11 @@ export function DomainErrorScreen({
   const allowedDomain = getAllowedDomain();
 
   return (
-    <div className="min-h-screen w-full bg-slate-50 flex items-center justify-center p-4 sm:p-6 select-none">
-      <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-xl shadow-slate-200/70 border border-slate-200/80 text-center animate-fadeIn">
+    <div className="min-h-screen w-full bg-slate-50 flex items-center justify-center p-3.5 sm:p-6 select-none">
+      <div className="w-full max-w-md bg-white rounded-3xl p-5 sm:p-8 shadow-xl shadow-slate-200/70 border border-slate-200/80 text-center animate-fadeIn">
         {/* Shield Icon Badge */}
-        <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 mb-5 shadow-sm">
-          <ShieldAlert className="w-8 h-8 stroke-[2.2]" />
+        <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 mb-4 sm:mb-5 shadow-sm">
+          <ShieldAlert className="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.2]" />
         </div>
 
         {/* Header */}

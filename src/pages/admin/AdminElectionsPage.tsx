@@ -138,49 +138,49 @@ export function AdminElectionsPage({
   return (
     <div className="min-h-screen w-full bg-slate-50 flex flex-col select-none antialiased">
       {/* Top Header */}
-      <header className="w-full bg-white border-b border-slate-200 sticky top-0 z-20 px-4 sm:px-6 py-3 flex items-center justify-between shadow-2xs">
-        <div className="flex items-center space-x-2">
+      <header className="w-full bg-white border-b border-slate-200 sticky top-0 z-20 px-3.5 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between shadow-2xs">
+        <div className="flex items-center space-x-2 min-w-0">
           <button
             onClick={onBack}
-            className="w-9 h-9 -ml-1 rounded-xl flex items-center justify-center text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+            className="w-8 h-8 sm:w-9 sm:h-9 -ml-1 rounded-xl flex items-center justify-center text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center space-x-1.5">
-              <h1 className="text-sm sm:text-base font-bold text-slate-900 leading-none">
-                Elections Governance & CRUD
+              <h1 className="text-xs sm:text-base font-bold text-slate-900 leading-none truncate">
+                Elections Governance
               </h1>
-              <span className="px-1.5 py-0.2 rounded-md bg-purple-50 text-purple-700 text-[9px] font-extrabold uppercase tracking-wider border border-purple-100">
+              <span className="px-1.5 py-0.2 rounded-md bg-purple-50 text-purple-700 text-[8px] sm:text-[9px] font-extrabold uppercase tracking-wider border border-purple-100 shrink-0">
                 SUPER ADMIN
               </span>
             </div>
-            <p className="text-[10px] text-slate-400 mt-0.5">
-              Create, edit, change status, and purge institutional voting ballots
+            <p className="text-[9px] sm:text-[10px] text-slate-400 mt-0.5 truncate">
+              Manage ballots, parameters & voting states
             </p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
           <button
             onClick={loadData}
             title="Refresh list"
-            className="w-9 h-9 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 flex items-center justify-center cursor-pointer transition-colors"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 flex items-center justify-center cursor-pointer transition-colors"
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
           <button
             onClick={onCreateElection}
-            className="h-9 px-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-xs cursor-pointer"
+            className="h-8 sm:h-9 px-2.5 sm:px-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1 sm:space-x-1.5 shadow-xs cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
-            <span>New Election</span>
+            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span>New <span className="hidden sm:inline">Election</span></span>
           </button>
         </div>
       </header>
 
       {/* Main Container */}
-      <main className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-5 space-y-4">
+      <main className="flex-1 w-full max-w-4xl mx-auto px-3.5 sm:px-6 py-4 sm:py-5 space-y-4">
         {/* Toast Notification */}
         {toastMessage && (
           <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-semibold text-emerald-800 flex items-center gap-2 animate-fade-in shadow-xs">
@@ -190,26 +190,26 @@ export function AdminElectionsPage({
         )}
 
         {/* 4 Metric Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-1">
-            <span className="text-[11px] text-slate-400 font-medium">Total Elections</span>
-            <div className="text-lg font-black text-slate-900">{elections.length}</div>
-            <span className="text-[10px] text-indigo-600 font-bold">In Database</span>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+          <div className="p-3 sm:p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-1">
+            <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium">Total Elections</span>
+            <div className="text-base sm:text-lg font-black text-slate-900">{elections.length}</div>
+            <span className="text-[9px] sm:text-[10px] text-indigo-600 font-bold">In Database</span>
           </div>
-          <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-1">
-            <span className="text-[11px] text-slate-400 font-medium">Active Now</span>
-            <div className="text-lg font-black text-emerald-600">{activeCount}</div>
-            <span className="text-[10px] text-emerald-600 font-bold">Accepting Votes</span>
+          <div className="p-3 sm:p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-1">
+            <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium">Active Now</span>
+            <div className="text-base sm:text-lg font-black text-emerald-600">{activeCount}</div>
+            <span className="text-[9px] sm:text-[10px] text-emerald-600 font-bold">Accepting Votes</span>
           </div>
-          <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-1">
-            <span className="text-[11px] text-slate-400 font-medium">Scheduled</span>
-            <div className="text-lg font-black text-blue-600">{scheduledCount}</div>
-            <span className="text-[10px] text-blue-600 font-bold">Upcoming</span>
+          <div className="p-3 sm:p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-1">
+            <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium">Scheduled</span>
+            <div className="text-base sm:text-lg font-black text-blue-600">{scheduledCount}</div>
+            <span className="text-[9px] sm:text-[10px] text-blue-600 font-bold">Upcoming</span>
           </div>
-          <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-1">
-            <span className="text-[11px] text-slate-400 font-medium">Concluded</span>
-            <div className="text-lg font-black text-slate-700">{closedCount}</div>
-            <span className="text-[10px] text-slate-500 font-bold">Closed Polls</span>
+          <div className="p-3 sm:p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-1">
+            <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium">Concluded</span>
+            <div className="text-base sm:text-lg font-black text-slate-700">{closedCount}</div>
+            <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold">Closed Polls</span>
           </div>
         </div>
 
@@ -231,7 +231,7 @@ export function AdminElectionsPage({
               <button
                 key={tab}
                 onClick={() => setFilter(tab)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
                   filter === tab
                     ? 'bg-slate-900 text-white shadow-xs'
                     : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
@@ -274,13 +274,13 @@ export function AdminElectionsPage({
             {filtered.map((election) => (
               <div
                 key={election.id}
-                className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-slate-300 shadow-xs space-y-4 transition-all"
+                className="p-3.5 sm:p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-slate-300 shadow-xs space-y-3.5 transition-all"
               >
                 {/* Header Row */}
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5">
-                  <div className="space-y-1 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                      <h3 className="text-xs sm:text-base font-bold text-slate-900 break-words">
                         {election.title}
                       </h3>
                       {getStatusBadge(election.status)}
@@ -296,7 +296,7 @@ export function AdminElectionsPage({
                   </div>
 
                   {/* Actions: Edit & Delete */}
-                  <div className="flex items-center space-x-1.5 self-end sm:self-start">
+                  <div className="flex items-center space-x-1.5 self-start sm:self-start shrink-0">
                     <button
                       onClick={() => onEditElection(election)}
                       className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center space-x-1 transition-colors cursor-pointer"
@@ -320,33 +320,33 @@ export function AdminElectionsPage({
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-2 border-t border-slate-100">
                   <div>
                     <span className="text-[10px] text-slate-400 block">Department / Scope</span>
-                    <span className="font-semibold text-slate-700">
+                    <span className="font-semibold text-slate-700 truncate block">
                       {election.department_name || 'All Departments'}
                     </span>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400 block">Academic Year</span>
-                    <span className="font-semibold text-slate-700">
+                    <span className="font-semibold text-slate-700 block">
                       {election.academic_year || '2026-2027'}
                     </span>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400 block">Turnout / Registered</span>
-                    <span className="font-semibold text-slate-700">
+                    <span className="font-semibold text-slate-700 block">
                       {election.votes_count} / {election.eligible_voters_count || 0}
                     </span>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400 block">Start Date</span>
-                    <span className="font-semibold text-slate-700 font-mono text-[11px]">
+                    <span className="font-semibold text-slate-700 font-mono text-[11px] block">
                       {new Date(election.start_at).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
 
                 {/* Quick Status Selector Control */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100/80 text-xs">
-                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-100/80 text-xs">
+                  <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     Quick Status Transition:
                   </span>
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -376,14 +376,14 @@ export function AdminElectionsPage({
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmElection && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-200 space-y-4 animate-scale-up">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl border border-slate-200 space-y-4 animate-scale-up max-h-[90vh] overflow-y-auto">
             <div className="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
               <AlertTriangle className="w-6 h-6" />
             </div>
 
             <div className="space-y-1">
-              <h3 className="text-base font-bold text-slate-900">
+              <h3 className="text-sm sm:text-base font-bold text-slate-900 break-words">
                 Purge Election: {deleteConfirmElection.title}?
               </h3>
               <p className="text-xs text-slate-500 leading-relaxed">

@@ -146,7 +146,7 @@ export function VotingPage({ electionId = 'el-001', onBack, onVoteSuccess }: Vot
                 </div>
 
                 {/* Top Right Badges */}
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-wrap items-center justify-end gap-1.5">
                   <span className="px-2.5 py-1 rounded-full bg-blue-100/80 text-blue-700 text-xs font-medium">
                     {election?.election_type || 'Department Election'}
                   </span>
@@ -167,37 +167,37 @@ export function VotingPage({ electionId = 'el-001', onBack, onVoteSuccess }: Vot
               </div>
 
               {/* Metric Row: 3 White Pill Boxes */}
-              <div className="grid grid-cols-3 gap-2 pt-1">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pt-1">
                 {/* Box 1: Eligible Voters */}
-                <div className="bg-white rounded-2xl p-3 border border-slate-100 flex flex-col justify-center items-start shadow-2xs">
-                  <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-1.5">
-                    <Users className="w-4 h-4" />
+                <div className="bg-white rounded-2xl p-2 sm:p-3 border border-slate-100 flex flex-col justify-center items-start shadow-2xs">
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-1">
+                    <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </div>
-                  <span className="text-sm font-extrabold text-slate-900 leading-tight">
+                  <span className="text-xs sm:text-sm font-extrabold text-slate-900 leading-tight">
                     {election?.eligible_voters_count ? election.eligible_voters_count.toLocaleString() : '0'}
                   </span>
-                  <span className="text-[10px] text-slate-400 font-medium">Eligible Voters</span>
+                  <span className="text-[9px] sm:text-[10px] text-slate-400 font-medium truncate w-full">Eligible</span>
                 </div>
 
                 {/* Box 2: Countdown Timer */}
-                <div className="bg-white rounded-2xl p-3 border border-slate-100 flex flex-col justify-center items-start shadow-2xs">
-                  <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-1.5">
-                    <Calendar className="w-4 h-4" />
+                <div className="bg-white rounded-2xl p-2 sm:p-3 border border-slate-100 flex flex-col justify-center items-start shadow-2xs">
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-1">
+                    <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </div>
-                  <span className="text-[10px] text-slate-400 font-medium">Ends in</span>
-                  <span className="text-xs font-extrabold text-blue-600 leading-tight">{timeLabel}</span>
-                  <span className="text-[9px] text-slate-400 truncate w-full">
+                  <span className="text-[9px] sm:text-[10px] text-slate-400 font-medium">Ends in</span>
+                  <span className="text-xs sm:text-xs font-extrabold text-blue-600 leading-tight truncate w-full">{timeLabel}</span>
+                  <span className="text-[8px] sm:text-[9px] text-slate-400 truncate w-full">
                     {election?.end_at ? new Date(election.end_at).toLocaleDateString() : 'Active'}
                   </span>
                 </div>
 
                 {/* Box 3: Candidates Count */}
-                <div className="bg-white rounded-2xl p-3 border border-slate-100 flex flex-col justify-center items-start shadow-2xs">
-                  <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-1.5">
-                    <FileText className="w-4 h-4" />
+                <div className="bg-white rounded-2xl p-2 sm:p-3 border border-slate-100 flex flex-col justify-center items-start shadow-2xs">
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-1">
+                    <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </div>
-                  <span className="text-sm font-extrabold text-slate-900 leading-tight">{candidates.length}</span>
-                  <span className="text-[10px] text-slate-400 font-medium">Candidates</span>
+                  <span className="text-xs sm:text-sm font-extrabold text-slate-900 leading-tight">{candidates.length}</span>
+                  <span className="text-[9px] sm:text-[10px] text-slate-400 font-medium truncate w-full">Candidates</span>
                 </div>
               </div>
             </div>
@@ -449,8 +449,8 @@ export function VotingPage({ electionId = 'el-001', onBack, onVoteSuccess }: Vot
 
       {/* 4. Candidate Manifesto Modal */}
       {manifestoModalCandidate && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white w-full max-w-md rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
             <div className="flex items-start justify-between">
               <div className="flex items-center space-x-3">
                 {(() => {
@@ -553,8 +553,8 @@ export function VotingPage({ electionId = 'el-001', onBack, onVoteSuccess }: Vot
 
       {/* 5. Confirm Vote Dialog Modal */}
       {isConfirmModalOpen && selectedCandidate && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4 text-center">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
+          <div className="bg-white w-full max-w-sm rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 text-center max-h-[90vh] overflow-y-auto">
             <div className="w-14 h-14 mx-auto rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
               <Lock className="w-7 h-7" />
             </div>

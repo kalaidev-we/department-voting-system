@@ -234,7 +234,7 @@ export function StaffAddCandidatePage({ onBack, onSuccess }: StaffAddCandidatePa
   return (
     <div className="min-h-screen w-full bg-slate-50 flex flex-col select-none antialiased">
       {/* Top Header */}
-      <header className="w-full bg-white border-b border-slate-200 sticky top-0 z-20 px-4 sm:px-6 py-3 flex items-center justify-between">
+      <header className="w-full bg-white border-b border-slate-200 sticky top-0 z-20 px-3.5 sm:px-6 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <button
             onClick={onBack}
@@ -254,8 +254,8 @@ export function StaffAddCandidatePage({ onBack, onSuccess }: StaffAddCandidatePa
       </header>
 
       {/* Main Content Form */}
-      <main className="flex-1 w-full max-w-2xl mx-auto px-4 sm:px-6 py-6">
-        <form onSubmit={handleSubmit} className="space-y-5 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs">
+      <main className="flex-1 w-full max-w-2xl mx-auto px-3.5 sm:px-6 py-5 sm:py-6">
+        <form onSubmit={handleSubmit} className="space-y-5 bg-white p-4 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs">
           
           {/* Target Election */}
           <div className="space-y-1.5">
@@ -283,12 +283,12 @@ export function StaffAddCandidatePage({ onBack, onSuccess }: StaffAddCandidatePa
 
           {/* Quick Select: Already Registered Students */}
           <div className="p-4 bg-indigo-50/70 rounded-2xl border border-indigo-100 space-y-2.5">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
               <label className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
                 <UserCheck className="w-4 h-4 text-indigo-600" />
                 <span>Select from Already Registered Students</span>
               </label>
-              <span className="text-[10px] font-semibold text-indigo-600 bg-white px-2 py-0.5 rounded-full border border-indigo-200">
+              <span className="text-[10px] font-semibold text-indigo-600 bg-white px-2 py-0.5 rounded-full border border-indigo-200 self-start sm:self-auto">
                 {registeredStudents.length} Students in Roster
               </span>
             </div>

@@ -58,8 +58,8 @@ and cannot be reverse-engineered from this receipt.
   };
 
   return (
-    <div className="min-h-screen w-full bg-slate-50 flex flex-col items-center justify-center p-4 sm:p-6 select-none antialiased">
-      <div className="w-full max-w-md space-y-5">
+    <div className="min-h-screen w-full bg-slate-50 flex flex-col items-center justify-center p-3 sm:p-6 select-none antialiased">
+      <div className="w-full max-w-md space-y-4 sm:space-y-5">
         {/* Top Branding */}
         <div className="flex items-center justify-center space-x-2">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white shadow-sm shadow-blue-500/20">

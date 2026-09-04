@@ -54,7 +54,7 @@ export function ProfileDropdown({ onNavigate }: ProfileDropdownProps) {
 
       {/* Modern Floating Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl shadow-slate-300/40 border border-slate-100 p-2 z-50 animate-scaleUp select-none">
+        <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-1.5rem)] bg-white rounded-2xl shadow-xl shadow-slate-300/40 border border-slate-100 p-2 z-50 animate-scaleUp select-none">
           {/* User Info Header */}
           <div className="p-3 bg-slate-50/80 rounded-xl mb-1.5 flex items-start space-x-3">
             <div className="w-10 h-10 rounded-full bg-brand-100 text-brand-700 font-bold text-sm flex items-center justify-center overflow-hidden shrink-0 border border-white">

@@ -72,25 +72,25 @@ export function ProfileCompletionPage({ onCompleted }: ProfileCompletionPageProp
   };
 
   return (
-    <div className="min-h-screen w-full bg-slate-50 flex items-center justify-center p-4 sm:p-6 select-none">
-      <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-xl shadow-slate-200/70 border border-slate-200/80 animate-fadeIn">
+    <div className="min-h-screen w-full bg-slate-50 flex items-center justify-center p-3 sm:p-6 select-none">
+      <div className="w-full max-w-md bg-white rounded-3xl p-4 sm:p-8 shadow-xl shadow-slate-200/70 border border-slate-200/80 animate-fadeIn">
         {/* Header */}
         <div className="text-center">
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-brand-600 flex items-center justify-center mx-auto mb-3 border border-blue-100 shadow-2xs">
-            <GraduationCap className="w-6 h-6" />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-blue-50 text-brand-600 flex items-center justify-center mx-auto mb-2 sm:mb-3 border border-blue-100 shadow-2xs">
+            <GraduationCap className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
 
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+          <h2 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">
             Complete your profile
           </h2>
-          <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto leading-relaxed">
+          <p className="text-[11px] sm:text-xs text-slate-500 mt-1 max-w-xs mx-auto leading-relaxed">
             We need a few details to determine which elections you can participate in.
           </p>
         </div>
 
         {/* Read-only Google Verified Info Box */}
-        <div className="mt-5 p-3.5 bg-slate-50 rounded-2xl border border-slate-200/70 flex items-center space-x-3">
-          <div className="w-11 h-11 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center overflow-hidden shrink-0 border border-white shadow-2xs">
+        <div className="mt-4 sm:mt-5 p-3 sm:p-3.5 bg-slate-50 rounded-2xl border border-slate-200/70 flex items-center space-x-2.5 sm:space-x-3">
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center overflow-hidden shrink-0 border border-white shadow-2xs">
             {profile?.avatar_url ? (
               <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
             ) : (
@@ -105,18 +105,18 @@ export function ProfileCompletionPage({ onCompleted }: ProfileCompletionPageProp
               </span>
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
             </div>
-            <p className="text-[11px] text-slate-500 font-mono truncate">
+            <p className="text-[10px] sm:text-[11px] text-slate-500 font-mono truncate">
               {profile?.email}
             </p>
           </div>
 
-          <span className="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 text-[10px] font-bold text-emerald-700">
+          <span className="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 text-[9px] sm:text-[10px] font-bold text-emerald-700 shrink-0">
             Verified
           </span>
         </div>
 
         {/* Form Fields */}
-        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+        <form onSubmit={handleSubmit} className="mt-4 sm:mt-5 space-y-3.5 sm:space-y-4">
           {/* Student ID */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">

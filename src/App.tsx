@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { AuthenticateWithRedirectCallback } from '@clerk/clerk-react';
 import { LoginPage } from './pages/LoginPage';
 import { DomainErrorScreen } from './components/auth/DomainErrorScreen';
@@ -668,10 +669,12 @@ export function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <div className="min-h-screen w-full bg-slate-50 flex flex-col relative">
-          {/* Application Content */}
-          <ApplicationRouter />
-        </div>
+        <ThemeProvider>
+          <div className="min-h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col relative transition-colors duration-200">
+            {/* Application Content */}
+            <ApplicationRouter />
+          </div>
+        </ThemeProvider>
       </AuthProvider>
     </ErrorBoundary>
   );

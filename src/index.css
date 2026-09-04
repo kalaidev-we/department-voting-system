@@ -19,6 +19,12 @@
     -moz-osx-font-smoothing: grayscale;
     -webkit-tap-highlight-color: transparent;
   }
+
+  html.dark, body.dark {
+    background-color: #020617;
+    color: #f8fafc;
+    color-scheme: dark;
+  }
 }
 
 /* Custom scrollbars */
@@ -38,6 +44,14 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }
 
 /* Glassmorphism helpers */

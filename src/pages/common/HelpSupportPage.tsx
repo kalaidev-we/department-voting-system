@@ -153,7 +153,7 @@ export function HelpSupportPage({ onBack }: HelpSupportPageProps) {
         {/* 3 Contact Quick Action Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <a
-            href="mailto:election@kpriet.ac.in"
+            href="mailto:contact@ariseagency.in"
             className="p-4 rounded-2xl bg-white border border-slate-200/80 hover:border-brand-300 shadow-xs transition-all flex flex-col justify-between space-y-2 group"
           >
             <div className="w-9 h-9 rounded-xl bg-blue-50 text-brand-600 flex items-center justify-center group-hover:scale-105 transition-transform">
@@ -162,7 +162,7 @@ export function HelpSupportPage({ onBack }: HelpSupportPageProps) {
             <div>
               <span className="text-xs font-bold text-slate-900 block">Email Returning Desk</span>
               <span className="text-[11px] text-slate-400 font-mono truncate block mt-0.5">
-                election@kpriet.ac.in
+                contact@ariseagency.in
               </span>
             </div>
           </a>

@@ -48,12 +48,12 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Contact Channels</p>
             
             <a
-              href="mailto:election@kpriet.ac.in"
+              href="mailto:contact@ariseagency.in"
               className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-brand-200 hover:bg-brand-50/40 transition-colors group"
             >
               <div className="flex items-center space-x-2.5">
                 <Mail className="w-4 h-4 text-slate-400 group-hover:text-brand-600" />
-                <span className="text-xs font-medium text-slate-700">election@kpriet.ac.in</span>
+                <span className="text-xs font-medium text-slate-700">contact@ariseagency.in</span>
               </div>
               <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-brand-600" />
             </a>

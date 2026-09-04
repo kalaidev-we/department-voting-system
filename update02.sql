@@ -23,7 +23,22 @@ ALTER TABLE candidate_applications ADD COLUMN IF NOT EXISTS election_title VARCH
 ALTER TABLE candidate_applications ADD COLUMN IF NOT EXISTS key_promises JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE candidate_applications ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
 
--- Relax foreign key constraints on student_id so roll numbers or profile IDs are both accepted
+-- Drop ALL policies on candidate_applications before altering column type,
+-- because PostgreSQL forbids altering the type of a column used in an active policy definition.
+DO $$
+DECLARE
+    pol RECORD;
+BEGIN
+    FOR pol IN 
+        SELECT policyname 
+        FROM pg_policies 
+        WHERE tablename = 'candidate_applications' AND schemaname = 'public'
+    LOOP
+        EXECUTE format('DROP POLICY IF EXISTS %I ON candidate_applications', pol.policyname);
+    END LOOP;
+END $$;
+
+-- Drop foreign key and unique constraints on student_id so roll numbers or profile IDs are both accepted
 DO $$
 BEGIN
     ALTER TABLE candidate_applications DROP CONSTRAINT IF EXISTS candidate_applications_student_id_fkey;
@@ -31,7 +46,10 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END $$;
 
+-- Safely alter column type
 ALTER TABLE candidate_applications ALTER COLUMN student_id TYPE VARCHAR(255);
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS student_id VARCHAR(100);
+
 
 -- 3. ENHANCE VOTING TABLES (ANONYMOUS_VOTES, VOTE_LEDGER, VOTE_RECEIPTS, ELIGIBILITY)
 
@@ -173,8 +191,13 @@ BEGIN
     IF p_student_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
         v_voter_uuid := p_student_id::uuid;
     ELSE
-        SELECT id INTO v_voter_uuid FROM profiles 
-        WHERE student_id = p_student_id OR email = p_student_id LIMIT 1;
+        SELECT id INTO v_voter_uuid FROM students 
+        WHERE student_id = p_student_id LIMIT 1;
+
+        IF v_voter_uuid IS NULL THEN
+            SELECT id INTO v_voter_uuid FROM profiles 
+            WHERE email = p_student_id OR student_id = p_student_id LIMIT 1;
+        END IF;
         
         IF v_voter_uuid IS NULL THEN
             v_voter_uuid := auth.uid();

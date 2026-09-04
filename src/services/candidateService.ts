@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { CandidateApplication } from '../lib/types';
+import { parseStudentId } from '../lib/studentParser';
 
 export async function fetchCandidateApplications(): Promise<CandidateApplication[]> {
   const localList: CandidateApplication[] = (() => {
@@ -17,26 +18,31 @@ export async function fetchCandidateApplications(): Promise<CandidateApplication
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      const dbList = data.map((item: any) => ({
-        id: item.id,
-        election_id: item.election_id,
-        election_title: item.election_title || 'Campus Election',
-        student_id: item.roll_number || item.student_id || '',
-        full_name: item.full_name || 'Student Candidate',
-        email: item.email || '',
-        department: item.department || '',
-        year: item.year || '',
-        cgpa: item.cgpa ? parseFloat(item.cgpa) : 0,
-        slogan: item.slogan || '',
-        manifesto: item.manifesto || '',
-        key_promises: Array.isArray(item.key_promises) ? item.key_promises : [],
-        symbol: item.symbol || '🛡️ Shield',
-        status: item.status || 'SUBMITTED',
-        submitted_at: item.created_at || item.submitted_at || new Date().toISOString(),
-        reviewed_by: item.reviewed_by,
-        reviewed_at: item.reviewed_at,
-        review_notes: item.review_notes,
-      }));
+      const dbList = data.map((item: any) => {
+        const sid = item.roll_number || item.student_id || '';
+        const parsed = parseStudentId(sid);
+        const resolvedYear = parsed.isLateralEntry ? '2nd Year' : (item.year || (parsed.isValid ? parsed.suggestedYear : '1st Year'));
+
+        return {
+          id: item.id,
+          election_id: item.election_id,
+          election_title: item.election_title || 'Campus Election',
+          student_id: sid,
+          full_name: item.full_name || 'Student Candidate',
+          email: item.email || '',
+          department: item.department || '',
+          year: resolvedYear,
+          cgpa: item.cgpa ? parseFloat(item.cgpa) : 0,
+          slogan: item.slogan || '',
+          manifesto: item.manifesto || '',
+          key_promises: Array.isArray(item.key_promises) ? item.key_promises : [],
+          symbol: item.symbol || '🛡️ Shield',
+          photo_url: item.photo_url || null,
+          status: (item.status || 'SUBMITTED').toUpperCase(),
+          submitted_at: item.created_at || new Date().toISOString(),
+          verification_notes: item.verification_notes || null,
+        };
+      });
 
       // Merge avoiding duplicates
       const seen = new Set(dbList.map((d: any) => `${d.election_id}_${d.email?.toLowerCase()}`));
@@ -78,6 +84,11 @@ export async function submitCandidateApplication(payload: {
       cleanRollNumber = emailPrefix;
     }
 
+    const parsedStudent = parseStudentId(cleanRollNumber);
+    const resolvedYear = parsedStudent.isLateralEntry
+      ? '2nd Year'
+      : (payload.year || (parsedStudent.isValid ? parsedStudent.suggestedYear : '1st Year'));
+
     const insertPayload: any = {
       election_id: payload.election_id,
       student_id: cleanRollNumber,
@@ -85,7 +96,7 @@ export async function submitCandidateApplication(payload: {
       full_name: payload.full_name,
       email: payload.email,
       department: payload.department,
-      year: payload.year || '1st Year',
+      year: resolvedYear,
       cgpa: payload.cgpa || 8.0,
       election_title: payload.election_title || 'Campus Election',
       slogan: payload.slogan,
@@ -105,7 +116,7 @@ export async function submitCandidateApplication(payload: {
         p_full_name: payload.full_name,
         p_email: payload.email,
         p_department: payload.department,
-        p_year: payload.year || '1st Year',
+        p_year: resolvedYear,
         p_cgpa: payload.cgpa || 8.0,
         p_slogan: payload.slogan,
         p_manifesto: payload.manifesto,
@@ -124,7 +135,7 @@ export async function submitCandidateApplication(payload: {
             full_name: payload.full_name,
             email: payload.email,
             department: payload.department,
-            year: payload.year || '1st Year',
+            year: resolvedYear,
             cgpa: payload.cgpa || 8.0,
             slogan: payload.slogan,
             manifesto: payload.manifesto,
@@ -162,7 +173,7 @@ export async function submitCandidateApplication(payload: {
         full_name: payload.full_name,
         email: payload.email,
         department: payload.department,
-        year: payload.year || '1st Year',
+        year: resolvedYear,
         cgpa: payload.cgpa || 8.0,
         slogan: payload.slogan,
         manifesto: payload.manifesto,

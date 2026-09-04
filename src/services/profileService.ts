@@ -73,8 +73,13 @@ export async function syncUserProfile(identity: GoogleAuthIdentity): Promise<Use
       const parsed = parseStudentId(studentId);
       if (parsed.isValid) {
         if (!departmentName) departmentName = parsed.departmentName;
-        if (!year) year = parsed.suggestedYear;
-        if (!batch) batch = parsed.admissionBatch;
+        // For lateral entry students (e.g. 26SCL03), automatically enforce 2nd Year
+        if (!year || (parsed.isLateralEntry && year === '1st Year')) {
+          year = parsed.suggestedYear;
+        }
+        if (!batch || parsed.isLateralEntry) {
+          batch = parsed.admissionBatch;
+        }
       }
     }
     // If student lacks student ID or department, require completion

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { submitCandidateApplication } from '../../services/candidateService';
 import { fetchStaffElections } from '../../services/electionService';
-import { extractStudentIdFromEmail } from '../../lib/studentParser';
+import { extractStudentIdFromEmail, parseStudentId } from '../../lib/studentParser';
 import { Election } from '../../lib/types';
 import {
   ChevronLeft,
@@ -51,6 +51,13 @@ export function CandidateApplyPage({ onBack, onSuccess }: CandidateApplyPageProp
 
   const selectedElection = elections.find((e) => e.id === electionId);
 
+  const derivedRoll = (profile?.student_id || extractStudentIdFromEmail(profile?.email) || '26SCL03').toUpperCase();
+  const parsedStudent = parseStudentId(derivedRoll);
+  const resolvedYear = parsedStudent.isLateralEntry
+    ? '2nd Year'
+    : (profile?.year || (parsedStudent.isValid ? parsedStudent.suggestedYear : '1st Year'));
+  const resolvedDepartment = profile?.department_name || (parsedStudent.isValid ? parsedStudent.departmentName : 'Cybersecurity Department');
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -78,8 +85,6 @@ export function CandidateApplyPage({ onBack, onSuccess }: CandidateApplyPageProp
 
     setIsSubmitting(true);
 
-    const derivedRoll = (profile?.student_id || extractStudentIdFromEmail(profile?.email) || '26SCL03').toUpperCase();
-
     const result = await submitCandidateApplication({
       election_id: electionId,
       election_title: selectedElection?.title || 'Campus Election',
@@ -88,8 +93,8 @@ export function CandidateApplyPage({ onBack, onSuccess }: CandidateApplyPageProp
       roll_number: derivedRoll,
       full_name: profile?.full_name || 'KPRIET Student',
       email: profile?.email || '26scl03@kpriet.ac.in',
-      department: profile?.department_name || 'Cybersecurity Department',
-      year: profile?.year || '2nd Year',
+      department: resolvedDepartment,
+      year: resolvedYear,
       cgpa: numCgpa,
       slogan: slogan.trim(),
       manifesto: manifesto.trim(),
@@ -182,7 +187,7 @@ export function CandidateApplyPage({ onBack, onSuccess }: CandidateApplyPageProp
                 <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
               </div>
               <p className="text-xs text-slate-400 font-mono mt-0.5">
-                {profile?.student_id || '26SCL03'} &bull; {profile?.department_name || 'Cybersecurity'} &bull; {profile?.email}
+                {derivedRoll} &bull; {resolvedDepartment} &bull; {resolvedYear}
               </p>
             </div>
           </div>

@@ -46,18 +46,20 @@ export function parseStudentId(rawId?: string | null): ParsedStudentInfo {
   const id = rawId.trim().toUpperCase();
   result.studentId = id;
 
-  // Regex matches: 2 digits (batch) + 2 letters (course) + optional 'L' (lateral) + digits (roll)
-  const pattern = /^(\d{2})([A-Z]{2})(L)?(\d{2,4})$/;
+  // Regex matches: 2 digits (batch) + 2-3 letters (course) + optional 'L' (lateral) + digits (roll)
+  // e.g. 26scl01, 26scl02, 26sc001, 26SCL03, 25ADL05
+  const pattern = /^(\d{2})([A-Z]{2,4}?)(L)?(\d{1,4})$/;
   const match = id.match(pattern);
 
   if (match) {
     const [, batchDigits, course, lateralFlag, roll] = match;
     const batchYear = 2000 + parseInt(batchDigits, 10);
+    const isLateral = Boolean(lateralFlag);
 
-    result.admissionBatch = lateralFlag ? `Batch of ${batchYear} (Lateral Entry)` : `Batch of ${batchYear}`;
+    result.admissionBatch = isLateral ? `Batch of ${batchYear} (Lateral Entry - Direct 2nd Year)` : `Batch of ${batchYear}`;
     result.academicBatchYear = batchYear;
     result.courseCode = course;
-    result.isLateralEntry = !!lateralFlag;
+    result.isLateralEntry = isLateral;
     result.rollNumber = roll;
 
     const courseInfo = COURSE_MAPPINGS[course];
@@ -67,14 +69,22 @@ export function parseStudentId(rawId?: string | null): ParsedStudentInfo {
       result.departmentName = `Department of ${course}`;
     }
 
-    // Determine current year of study based on batch
+    // Determine current year of study based on batch and admission entry type
+    // Regular students start in 1st year (baseYear = 1). e.g. 26SC001 -> 1st Year
+    // Lateral entry students join directly in 2nd year (baseYear = 2). e.g. 26SCL01 -> 2nd Year
     const currentYear = new Date().getFullYear();
-    const yearsDiff = currentYear - batchYear + 1;
+    const baseYear = isLateral ? 2 : 1;
+    const yearIndex = baseYear + Math.max(0, currentYear - batchYear);
 
-    if (yearsDiff <= 1) result.suggestedYear = '1st Year';
-    else if (yearsDiff === 2) result.suggestedYear = '2nd Year';
-    else if (yearsDiff === 3) result.suggestedYear = '3rd Year';
-    else result.suggestedYear = '4th Year';
+    if (yearIndex <= 1) {
+      result.suggestedYear = '1st Year';
+    } else if (yearIndex === 2) {
+      result.suggestedYear = '2nd Year';
+    } else if (yearIndex === 3) {
+      result.suggestedYear = '3rd Year';
+    } else {
+      result.suggestedYear = '4th Year';
+    }
 
     result.isValid = true;
   }

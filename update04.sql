@@ -252,3 +252,33 @@ AND NOT EXISTS (
     SELECT 1 FROM candidates c WHERE c.id = ca.id OR (c.election_id = ca.election_id AND c.student_id = ca.student_id)
 );
 
+-- 6. CORRECT LATERAL ENTRY STUDENTS YEAR TO 2ND YEAR
+-- All lateral entry students (roll containing 'L', e.g. 26SCL01, 26SCL02, 26SCL03) are direct 2nd Year
+UPDATE candidate_applications
+SET year = '2nd Year'
+WHERE student_id ~* '^[0-9]{2}[A-Za-z]{2,4}L[0-9]+$'
+   OR roll_number ~* '^[0-9]{2}[A-Za-z]{2,4}L[0-9]+$'
+   OR student_id ILIKE '%scl%';
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'students') THEN
+        UPDATE students
+        SET year = '2nd Year', admission_type = 'LATERAL'
+        WHERE student_id ~* '^[0-9]{2}[A-Za-z]{2,4}L[0-9]+$'
+           OR student_id ILIKE '%scl%';
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'profiles') THEN
+        UPDATE profiles
+        SET year = '2nd Year'
+        WHERE student_id ~* '^[0-9]{2}[A-Za-z]{2,4}L[0-9]+$'
+           OR student_id ILIKE '%scl%'
+           OR email ~* '^[0-9]{2}[A-Za-z]{2,4}l[0-9]+@';
+    END IF;
+END $$;
+
+

@@ -30,8 +30,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Hybrid Authentication Engine: Clerk Google OAuth + Supabase Database Sync
 function AuthEngine({ children }: { children: React.ReactNode }) {
   const { user: clerkUser, isLoaded: isClerkLoaded, isSignedIn: isClerkSignedIn } = useUser();
-  const { signOut: clerkSignOut } = useClerk();
-  const { signIn: clerkSignIn } = useSignIn();
+  const { signOut: clerkSignOut, openSignIn: clerkOpenSignIn } = useClerk();
+  const { signIn: clerkSignIn, isLoaded: isSignInLoaded } = useSignIn();
 
   const [profile, setProfile] = useState<UserProfile | null>(() => {
     try {
@@ -191,6 +191,16 @@ function AuthEngine({ children }: { children: React.ReactNode }) {
           redirectUrlComplete: window.location.origin,
         });
         return;
+      } else if (clerkOpenSignIn) {
+        clerkOpenSignIn({
+          fallbackRedirectUrl: window.location.origin,
+          signUpFallbackRedirectUrl: window.location.origin,
+        });
+        setIsLoading(false);
+        setAuthMessage(null);
+        return;
+      } else {
+        throw new Error('Authentication engine is initializing. Please click again in a few moments.');
       }
     } catch (err: any) {
       console.warn('Clerk Google sign-in redirect note:', err?.message);

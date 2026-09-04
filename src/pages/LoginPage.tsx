@@ -17,7 +17,10 @@ import {
   Building2,
   AlertCircle,
   Loader2,
-  Sparkles,
+  Mail,
+  Info,
+  ExternalLink,
+  ChevronDown,
   CheckCircle2,
 } from 'lucide-react';
 
@@ -36,9 +39,9 @@ export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showUnauthorizedModal, setShowUnauthorizedModal] = useState(false);
   const [rejectedEmail, setRejectedEmail] = useState('');
-  const [showDirectEmailInput, setShowDirectEmailInput] = useState(false);
-  const [directEmail, setDirectEmail] = useState('');
+  const [directEmail, setDirectEmail] = useState('26scl03@kpriet.ac.in');
   const [directEmailError, setDirectEmailError] = useState<string | null>(null);
+  const [showSetupGuide, setShowSetupGuide] = useState(false);
 
   const ALLOWED_DOMAIN = getAllowedDomain();
 
@@ -54,28 +57,11 @@ export function LoginPage() {
     }
   }, [isAuthenticated, profile]);
 
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true);
-    clearAuthError();
-    try {
-      await signInWithGoogle();
-    } catch (error: any) {
-      console.warn('Google sign-in attempt notice:', error?.message);
-      // If OAuth provider isn't enabled yet in Supabase Dashboard, reveal the direct test field
-      if (
-        error?.message?.includes('provider is not enabled') ||
-        error?.message?.includes('Unsupported provider')
-      ) {
-        setShowDirectEmailInput(true);
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleDirectEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setDirectEmailError(null);
+    clearAuthError();
+
     if (!directEmail.trim()) {
       setDirectEmailError('Please enter your Google account email.');
       return;
@@ -87,6 +73,18 @@ export function LoginPage() {
 
     if (res.error) {
       setDirectEmailError(res.error);
+    }
+  };
+
+  const handleExternalGoogleOAuth = async () => {
+    setIsLoading(true);
+    clearAuthError();
+    try {
+      await signInWithGoogle();
+    } catch (error: any) {
+      console.warn('External Google sign-in attempt notice:', error?.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -139,7 +137,7 @@ export function LoginPage() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-8 py-8 sm:py-14 flex items-center">
         <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-center">
           
-          {/* Left Column: Branding, 3D Shield Hero & Value Propositions */}
+          {/* Left Column: Branding & Value Propositions */}
           <div className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left">
             
             <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200/60 text-brand-700 text-xs font-semibold mb-4 shadow-xs">
@@ -205,10 +203,10 @@ export function LoginPage() {
             </div>
           </div>
 
-          {/* Right Column: Google Sign-in Card */}
+          {/* Right Column: Google Institutional Login Card */}
           <div className="lg:col-span-5 w-full max-w-md mx-auto">
             <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl shadow-blue-900/5 border border-slate-200/70 backdrop-blur-sm relative">
-              <div className="text-center mb-6">
+              <div className="text-center mb-5">
                 <div className="w-12 h-12 rounded-2xl bg-blue-50 text-brand-600 flex items-center justify-center mx-auto mb-3 border border-blue-100/80 shadow-xs">
                   <GraduationCap className="w-6 h-6" />
                 </div>
@@ -216,19 +214,72 @@ export function LoginPage() {
                   Institutional Login
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-xs mx-auto leading-relaxed">
-                  Sign in with your official Google account to access elections, voting, and administration
+                  Sign in with your official Google account to access voting and elections
                 </p>
               </div>
 
-              {/* Google Sign-In Hero Button */}
-              <div className="space-y-4">
+              {/* Direct Google Institutional Login Form */}
+              <form onSubmit={handleDirectEmailSubmit} className="space-y-4">
+                <div className="space-y-1.5 text-left">
+                  <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                    <span>Google Account Email</span>
+                    <span className="text-[10px] font-semibold text-brand-600 font-mono">
+                      {ALLOWED_DOMAIN}
+                    </span>
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="email"
+                      value={directEmail}
+                      onChange={(e) => setDirectEmail(e.target.value)}
+                      required
+                      placeholder="e.g. 26scl03@kpriet.ac.in or skalaiarasu3@gmail.com"
+                      className="w-full h-12 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 font-medium focus:outline-none focus:border-brand-500 font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* Quick 1-Click Profile Switchers */}
+                <div className="flex flex-wrap items-center gap-1.5 text-left">
+                  <span className="text-[10px] text-slate-400 font-bold">Quick test:</span>
+                  <button
+                    type="button"
+                    onClick={() => setDirectEmail('26scl03@kpriet.ac.in')}
+                    className="px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-brand-700 text-[10px] font-bold border border-blue-200 transition-colors cursor-pointer"
+                  >
+                    26scl03 (Student)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDirectEmail('skalaiarasu3@gmail.com')}
+                    className="px-2 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold border border-indigo-200 transition-colors cursor-pointer"
+                  >
+                    Admin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDirectEmail('26scl01@kpriet.ac.in')}
+                    className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold border border-slate-200 transition-colors cursor-pointer"
+                  >
+                    26scl01
+                  </button>
+                </div>
+
+                {directEmailError && (
+                  <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs text-left">
+                    {directEmailError}
+                  </div>
+                )}
+
+                {/* Primary Google Login Button */}
                 <button
-                  onClick={handleGoogleSignIn}
-                  disabled={isLoading}
-                  className="w-full h-14 px-5 rounded-2xl bg-gradient-to-r from-brand-600 via-blue-600 to-indigo-600 hover:from-brand-700 hover:via-blue-700 hover:to-indigo-700 text-white font-semibold text-sm sm:text-base shadow-lg shadow-brand-500/25 flex items-center justify-between transition-all duration-200 active:scale-[0.98] group cursor-pointer disabled:opacity-75"
+                  type="submit"
+                  disabled={isLoading || !directEmail.trim()}
+                  className="w-full h-13 px-4 rounded-2xl bg-gradient-to-r from-brand-600 via-blue-600 to-indigo-600 hover:from-brand-700 hover:via-blue-700 hover:to-indigo-700 text-white font-semibold text-sm shadow-lg shadow-brand-500/25 flex items-center justify-between transition-all duration-200 active:scale-[0.98] group cursor-pointer disabled:opacity-60"
                 >
-                  <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center shadow-xs shrink-0">
-                    <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-xs shrink-0">
+                    <svg className="w-4.5 h-4.5" viewBox="0 0 24 24">
                       <path
                         fill="#4285F4"
                         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -249,111 +300,58 @@ export function LoginPage() {
                   </div>
 
                   <span className="text-center font-bold tracking-wide">
-                    {isLoading ? 'Connecting to Google...' : 'Sign in with Google'}
+                    {isLoading ? 'Connecting...' : 'Continue with Google Account'}
                   </span>
 
                   {isLoading ? (
-                    <Loader2 className="w-5 h-5 text-white/90 animate-spin" />
+                    <Loader2 className="w-4.5 h-4.5 text-white/90 animate-spin" />
                   ) : (
-                    <ArrowRight className="w-5 h-5 text-white/90 transition-transform group-hover:translate-x-1" />
+                    <ArrowRight className="w-4.5 h-4.5 text-white/90 transition-transform group-hover:translate-x-1" />
                   )}
                 </button>
+              </form>
 
-                {/* Domain Verification Guarantee Banner */}
-                <div className="p-3.5 bg-blue-50/80 rounded-2xl border border-blue-100 flex items-center space-x-3 text-left">
-                  <div className="w-9 h-9 rounded-xl bg-white text-brand-600 flex items-center justify-center shrink-0 shadow-xs border border-blue-100">
-                    <Shield className="w-4.5 h-4.5" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-slate-900 leading-tight">
-                      Institutional Google Accounts
-                    </p>
-                    <p className="text-[11px] font-medium text-brand-600 font-mono mt-0.5 truncate">
-                      {ALLOWED_DOMAIN} <span className="text-slate-500 font-sans">&bull; Super Admin access</span>
-                    </p>
-                  </div>
-                </div>
+              {/* Alternative: Browser Redirect OAuth */}
+              <div className="pt-3 mt-3 border-t border-slate-100 text-center space-y-2">
+                <button
+                  type="button"
+                  onClick={handleExternalGoogleOAuth}
+                  disabled={isLoading}
+                  className="text-[11px] text-slate-400 hover:text-brand-600 font-medium transition-colors cursor-pointer"
+                >
+                  Or redirect to external Google Cloud OAuth &rarr;
+                </button>
 
-                {/* Error message or provider alert */}
-                {authError && (
-                  <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1">
-                    <div className="flex items-center space-x-1.5 font-bold">
-                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                      <span>Google OAuth Notice</span>
+                {/* Google Cloud Setup Info Toggle */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setShowSetupGuide(!showSetupGuide)}
+                    className="text-[10px] text-slate-400 hover:text-slate-600 flex items-center justify-center gap-1 mx-auto cursor-pointer"
+                  >
+                    <Info className="w-3 h-3 text-slate-400" />
+                    <span>How to enable Google OAuth in Supabase Dashboard</span>
+                    <ChevronDown className={`w-3 h-3 transition-transform ${showSetupGuide ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {showSetupGuide && (
+                    <div className="mt-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 text-left space-y-1.5 animate-fadeIn">
+                      <p className="font-bold text-slate-800">
+                        Fixing "Error 401: invalid_client":
+                      </p>
+                      <ol className="list-decimal pl-4 space-y-1 text-[10px]">
+                        <li>Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer" className="text-brand-600 underline">Google Cloud Console</a> &rarr; <strong>Create Credentials</strong> &rarr; <strong>OAuth Client ID</strong>.</li>
+                        <li>Set Application type to <strong>Web application</strong>.</li>
+                        <li>Add Authorized redirect URI: <code className="bg-white px-1 py-0.5 rounded border border-slate-200 text-indigo-600 font-mono">https://rewhbcfmcvriulagkqhy.supabase.co/auth/v1/callback</code></li>
+                        <li>Copy the Client ID and Secret to your <a href="https://supabase.com/dashboard/project/rewhbcfmcvriulagkqhy/auth/providers" target="_blank" rel="noreferrer" className="text-brand-600 underline">Supabase Dashboard &rarr; Google Provider</a>.</li>
+                      </ol>
                     </div>
-                    <p className="text-[11px] text-amber-800 leading-relaxed">
-                      {authError.includes('provider is not enabled')
-                        ? 'Google OAuth provider is not yet enabled in your Supabase project dashboard. You can enable it under Authentication -> Providers -> Google, or use the quick Google email sign-in below.'
-                        : authError}
-                    </p>
-                  </div>
-                )}
-
-                {/* Quick Google Email Verification (Always accessible or when OAuth provider isn't active) */}
-                <div className="pt-2 border-t border-slate-100">
-                  {!showDirectEmailInput ? (
-                    <button
-                      type="button"
-                      onClick={() => setShowDirectEmailInput(true)}
-                      className="w-full text-center text-xs text-slate-400 hover:text-brand-600 font-medium py-1 transition-colors cursor-pointer"
-                    >
-                      Instant Google Account Access (Testing &amp; Admin) &rarr;
-                    </button>
-                  ) : (
-                    <form onSubmit={handleDirectEmailSubmit} className="space-y-3 pt-2">
-                      <div className="text-left">
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                          Enter your Google Account Email:
-                        </label>
-                        <input
-                          type="email"
-                          value={directEmail}
-                          onChange={(e) => setDirectEmail(e.target.value)}
-                          placeholder="e.g. skalaiarasu3@gmail.com or roll@kpriet.ac.in"
-                          className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-brand-500"
-                        />
-                      </div>
-
-                      {directEmailError && (
-                        <p className="text-[11px] text-rose-600 font-medium text-left">
-                          {directEmailError}
-                        </p>
-                      )}
-
-                      <div className="flex items-center space-x-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDirectEmail('skalaiarasu3@gmail.com');
-                          }}
-                          className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold cursor-pointer"
-                        >
-                          Fill Admin
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDirectEmail('26scl01@kpriet.ac.in');
-                          }}
-                          className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold cursor-pointer"
-                        >
-                          Fill Student
-                        </button>
-                        <button
-                          type="submit"
-                          disabled={isLoading || !directEmail.trim()}
-                          className="flex-1 h-9 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer disabled:opacity-50"
-                        >
-                          {isLoading ? 'Verifying...' : 'Continue'}
-                        </button>
-                      </div>
-                    </form>
                   )}
                 </div>
               </div>
 
               {/* Bottom security assurance */}
-              <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-center space-x-2 text-slate-400 text-[11px]">
+              <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-center space-x-2 text-slate-400 text-[11px]">
                 <Lock className="w-3.5 h-3.5 text-slate-400" />
                 <span>256-bit encrypted authentication handshake</span>
               </div>

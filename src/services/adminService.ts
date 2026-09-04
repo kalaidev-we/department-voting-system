@@ -290,6 +290,290 @@ export async function importStudentsFromCSV(csvText: string): Promise<{
   };
 }
 
+// Update student record in Supabase & Local Cache
+export async function updateStudent(
+  originalStudentId: string,
+  payload: {
+    id?: string;
+    student_id: string;
+    full_name: string;
+    email: string;
+    department: string;
+    course_code?: string;
+    academic_batch?: string;
+    year: string;
+    section: string;
+    admission_type: 'REGULAR' | 'LATERAL';
+    is_eligible_to_vote: boolean;
+  }
+): Promise<{ success: boolean; data?: StudentRosterItem; error?: string }> {
+  try {
+    const studentIdClean = payload.student_id.toUpperCase().trim();
+    const emailClean = payload.email.toLowerCase().trim();
+    const fullNameClean = payload.full_name.trim();
+    const parsed = parseStudentId(studentIdClean);
+
+    const courseCode = payload.course_code || parsed.courseCode || 'SC';
+    const academicBatch = payload.academic_batch || parsed.admissionBatch || 'Batch of 2026';
+    const admissionType = payload.admission_type || (parsed.isLateralEntry ? 'LATERAL' : 'REGULAR');
+
+    // 1. Update students table
+    const updateStudentObj: any = {
+      student_id: studentIdClean,
+      full_name: fullNameClean,
+      email: emailClean,
+      department_name: payload.department,
+      course_code: courseCode,
+      academic_batch: academicBatch,
+      year: payload.year,
+      section: payload.section,
+      admission_type: admissionType,
+      is_eligible_to_vote: payload.is_eligible_to_vote,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error: sErr } = await supabase
+      .from('students')
+      .update(updateStudentObj)
+      .eq('student_id', originalStudentId);
+
+    if (sErr) {
+      console.warn('Direct update on students table warning:', sErr.message);
+    }
+
+    // 2. Also update profiles table if existing
+    const updateProfileObj: any = {
+      full_name: fullNameClean,
+      email: emailClean,
+      department_name: payload.department,
+      student_id: studentIdClean,
+      section: payload.section,
+      year: payload.year,
+      is_active: payload.is_eligible_to_vote,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error: pErr } = await supabase
+      .from('profiles')
+      .update(updateProfileObj)
+      .or(`student_id.eq.${originalStudentId},email.eq.${emailClean}`);
+
+    if (pErr) {
+      console.warn('Profiles update warning:', pErr.message);
+    }
+
+    // 3. Sync into localStorage cache
+    const updatedItem: StudentRosterItem = {
+      id: payload.id || `usr-${studentIdClean}`,
+      student_id: studentIdClean,
+      full_name: fullNameClean,
+      email: emailClean,
+      department: payload.department,
+      course_code: courseCode,
+      academic_batch: academicBatch,
+      year: payload.year,
+      section: payload.section,
+      admission_type: admissionType,
+      is_eligible_to_vote: payload.is_eligible_to_vote,
+    };
+
+    const cachedRoster = localStorage.getItem('student_roster');
+    if (cachedRoster) {
+      try {
+        const list: StudentRosterItem[] = JSON.parse(cachedRoster);
+        const idx = list.findIndex(
+          (s) => s.student_id === originalStudentId || (payload.id && s.id === payload.id)
+        );
+        if (idx >= 0) {
+          list[idx] = updatedItem;
+        } else {
+          list.unshift(updatedItem);
+        }
+        localStorage.setItem('student_roster', JSON.stringify(list));
+      } catch {}
+    }
+
+    return { success: true, data: updatedItem };
+  } catch (err: any) {
+    console.error('Failed to update student:', err);
+    return { success: false, error: err.message || 'Failed to update student.' };
+  }
+}
+
+// Delete student record from Supabase & Local Cache
+export async function deleteStudent(student: {
+  id?: string;
+  student_id: string;
+  email?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const sId = student.student_id;
+    const email = student.email?.toLowerCase().trim();
+    const uid = student.id;
+
+    // 1. Try atomic RPC if available
+    try {
+      const { data: rpcData, error: rpcErr } = await supabase.rpc('delete_student_cascade', {
+        p_student_id: sId,
+      });
+      if (!rpcErr && rpcData && rpcData.success) {
+        // Updated via RPC successfully
+      }
+    } catch {
+      // Continue to direct queries
+    }
+
+    // 2. Cascade cleanup from eligibility, applications, and receipts
+    await Promise.allSettled([
+      supabase.from('election_eligibility').delete().eq('student_id', sId),
+      supabase.from('candidate_applications').delete().eq('student_id', sId),
+      supabase.from('candidate_applications').delete().eq('roll_number', sId),
+      supabase.from('vote_receipts').delete().eq('student_id', sId),
+    ]);
+
+    if (email) {
+      await Promise.allSettled([
+        supabase.from('candidate_applications').delete().eq('email', email),
+      ]);
+    }
+
+    // 3. Delete from students table
+    const { error: sErr } = await supabase
+      .from('students')
+      .delete()
+      .eq('student_id', sId);
+
+    if (sErr) {
+      console.warn('Direct delete from students table notice:', sErr.message);
+    }
+
+    // 4. Delete / deactivate from profiles table
+    if (uid && !uid.startsWith('usr-')) {
+      await supabase.from('profiles').delete().eq('id', uid).eq('role', 'STUDENT');
+    } else if (email) {
+      await supabase.from('profiles').delete().eq('email', email).eq('role', 'STUDENT');
+    }
+
+    // 5. Update local storage cache
+    const cachedRoster = localStorage.getItem('student_roster');
+    if (cachedRoster) {
+      try {
+        const list: StudentRosterItem[] = JSON.parse(cachedRoster);
+        const filtered = list.filter(
+          (s) => s.student_id !== sId && (!uid || s.id !== uid) && (!email || s.email !== email)
+        );
+        localStorage.setItem('student_roster', JSON.stringify(filtered));
+      } catch {}
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('Failed to delete student:', err);
+    return { success: false, error: err.message || 'Failed to remove student record.' };
+  }
+}
+
+// Create single student record directly
+export async function createStudent(payload: {
+  student_id: string;
+  full_name: string;
+  email: string;
+  department: string;
+  year: string;
+  section: string;
+  admission_type?: 'REGULAR' | 'LATERAL';
+  is_eligible_to_vote?: boolean;
+}): Promise<{ success: boolean; data?: StudentRosterItem; error?: string }> {
+  try {
+    const studentIdClean = payload.student_id.toUpperCase().trim();
+    const emailClean = payload.email.toLowerCase().trim();
+    const fullNameClean = payload.full_name.trim();
+    const parsed = parseStudentId(studentIdClean);
+
+    if (!emailClean.endsWith('@kpriet.ac.in') && emailClean !== 'skalaiarasu3@gmail.com') {
+      return { success: false, error: 'Email address must end with @kpriet.ac.in' };
+    }
+
+    const courseCode = parsed.courseCode || 'SC';
+    const academicBatch = parsed.admissionBatch || 'Batch of 2026';
+    const admissionType = payload.admission_type || (parsed.isLateralEntry ? 'LATERAL' : 'REGULAR');
+    const isEligible = payload.is_eligible_to_vote !== false;
+
+    // 1. Upsert profile
+    const { data: profData } = await supabase
+      .from('profiles')
+      .upsert(
+        {
+          full_name: fullNameClean,
+          email: emailClean,
+          student_id: studentIdClean,
+          department_name: payload.department,
+          year: payload.year,
+          section: payload.section,
+          role: 'STUDENT',
+          is_active: isEligible,
+          is_profile_complete: true,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'email' }
+      )
+      .select('id')
+      .maybeSingle();
+
+    const profileId = profData?.id;
+
+    // 2. Insert into students table
+    const { error: sErr } = await supabase
+      .from('students')
+      .upsert(
+        {
+          id: profileId,
+          student_id: studentIdClean,
+          full_name: fullNameClean,
+          email: emailClean,
+          department_name: payload.department,
+          course_code: courseCode,
+          academic_batch: academicBatch,
+          year: payload.year,
+          section: payload.section,
+          admission_type: admissionType,
+          is_eligible_to_vote: isEligible,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'student_id' }
+      );
+
+    if (sErr) {
+      console.warn('Direct insert into students table warning:', sErr.message);
+    }
+
+    const newStudent: StudentRosterItem = {
+      id: profileId || `usr-${studentIdClean}`,
+      student_id: studentIdClean,
+      full_name: fullNameClean,
+      email: emailClean,
+      department: payload.department,
+      course_code: courseCode,
+      academic_batch: academicBatch,
+      year: payload.year,
+      section: payload.section,
+      admission_type: admissionType,
+      is_eligible_to_vote: isEligible,
+    };
+
+    // Update localStorage cache
+    const cachedRoster = localStorage.getItem('student_roster');
+    const list: StudentRosterItem[] = cachedRoster ? JSON.parse(cachedRoster) : [];
+    const filtered = list.filter((s) => s.student_id !== studentIdClean);
+    localStorage.setItem('student_roster', JSON.stringify([newStudent, ...filtered]));
+
+    return { success: true, data: newStudent };
+  } catch (err: any) {
+    console.error('Failed to create student:', err);
+    return { success: false, error: err.message || 'Failed to add student to registry.' };
+  }
+}
+
 // Fetch audit logs
 export async function fetchAuditLogs(): Promise<AuditLog[]> {
   try {

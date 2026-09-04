@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthenticateWithRedirectCallback } from '@clerk/clerk-react';
@@ -673,6 +674,8 @@ export function App() {
           <div className="min-h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col relative transition-colors duration-200">
             {/* Application Content */}
             <ApplicationRouter />
+            {/* Vercel Web Analytics */}
+            <Analytics />
           </div>
         </ThemeProvider>
       </AuthProvider>

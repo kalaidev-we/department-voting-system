@@ -137,9 +137,16 @@ export function LoginPage() {
     }
   };
 
-  // Quick fill helper for Super Admin
+  // Quick fill helper for Student & Admin
   const handleQuickFillAdmin = () => {
     setStaffEmail('skalaiarasu3@gmail.com');
+    setStaffPassword('kprietsckalai');
+    setStaffError(null);
+    setStaffSuccess(null);
+  };
+
+  const handleQuickFillStudent = () => {
+    setStaffEmail('26scl03@kpriet.ac.in');
     setStaffPassword('kprietsckalai');
     setStaffError(null);
     setStaffSuccess(null);
@@ -298,7 +305,7 @@ export function LoginPage() {
                   }`}
                 >
                   <Lock className={`w-4 h-4 ${activeTab === 'staff' ? 'text-brand-600' : 'text-slate-400'}`} />
-                  <span>Manual Staff Login</span>
+                  <span>Email / Staff Login</span>
                 </button>
               </div>
 
@@ -484,14 +491,24 @@ export function LoginPage() {
                     {/* Email field */}
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <label className="text-xs font-bold text-slate-700">Staff Email</label>
-                        <button
-                          type="button"
-                          onClick={handleQuickFillAdmin}
-                          className="text-[10px] font-bold text-brand-600 hover:text-brand-800 hover:underline cursor-pointer"
-                        >
-                          Fill Super Admin
-                        </button>
+                        <label className="text-xs font-bold text-slate-700">Institutional Email</label>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={handleQuickFillStudent}
+                            className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
+                          >
+                            Fill Student
+                          </button>
+                          <span className="text-slate-300 text-[10px]">|</span>
+                          <button
+                            type="button"
+                            onClick={handleQuickFillAdmin}
+                            className="text-[10px] font-bold text-brand-600 hover:text-brand-800 hover:underline cursor-pointer"
+                          >
+                            Fill Admin
+                          </button>
+                        </div>
                       </div>
                       <div className="relative">
                         <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />

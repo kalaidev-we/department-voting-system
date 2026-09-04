@@ -305,18 +305,29 @@ function AuthEngine({ children }: { children: React.ReactNode }) {
         cleanEmail.endsWith('@vote.ariseagency.in');
 
       if ((isInstitutionalStaffEmail || pass === 'kprietsckalai') && pass.length >= 4) {
-        const staffId = `usr-staff-${cleanEmail.replace(/[^a-z0-9]/g, '')}`;
-        const staffIdentity: GoogleAuthIdentity = {
-          id: staffId,
+        const isStaffEmail =
+          cleanEmail.includes('staff') ||
+          cleanEmail.includes('faculty') ||
+          cleanEmail.includes('hod') ||
+          cleanEmail.startsWith('dr.') ||
+          cleanEmail.startsWith('prof.') ||
+          pass === 'kprietsckalai';
+
+        const userId = isStaffEmail
+          ? `usr-staff-${cleanEmail.replace(/[^a-z0-9]/g, '')}`
+          : `usr-std-${cleanEmail.replace(/[^a-z0-9]/g, '')}`;
+
+        const userIdentity: GoogleAuthIdentity = {
+          id: userId,
           fullName: cleanEmail.split('@')[0].replace(/[._]/g, ' ').toUpperCase(),
           firstName: cleanEmail.split('@')[0],
           lastName: '',
           email: cleanEmail,
           avatarUrl: '',
-          googleUserId: staffId,
+          googleUserId: userId,
         };
-        const synced = await syncUserProfile(staffIdentity);
-        synced.role = 'STAFF_ADMIN';
+        const synced = await syncUserProfile(userIdentity);
+        synced.role = isStaffEmail ? 'STAFF_ADMIN' : 'STUDENT';
         synced.is_profile_complete = true;
         setProfile(synced);
         localStorage.setItem('securevote_active_profile', JSON.stringify(synced));

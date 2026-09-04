@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { AuthenticateWithRedirectCallback } from '@clerk/clerk-react';
 import { LoginPage } from './pages/LoginPage';
 import { DomainErrorScreen } from './components/auth/DomainErrorScreen';
 import { ProfileCompletionPage } from './pages/ProfileCompletionPage';
@@ -91,27 +90,10 @@ function ApplicationRouter() {
   const [adminReceipt, setAdminReceipt] = useState<VoteReceipt | null>(null);
   const [selectedElectionForEdit, setSelectedElectionForEdit] = useState<Election | null>(null);
 
-  // Handle Clerk SSO Callback (after Google redirects back)
+  // Handle SSO redirect cleanup if needed
   if (window.location.pathname.startsWith('/sso-callback')) {
-    return (
-      <div className="min-h-screen w-full bg-slate-50 flex flex-col items-center justify-center p-4 select-none">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center shadow-xl shadow-blue-500/25 animate-pulse mb-4">
-          <Shield className="w-7 h-7" />
-        </div>
-        <h3 className="text-base font-bold text-slate-900">
-          Authenticating with Google...
-        </h3>
-        <p className="text-xs text-slate-500 mt-1">
-          Verifying official college domain credentials (@kpriet.ac.in)
-        </p>
-
-        {/* Clerk OAuth handshake processor */}
-        <AuthenticateWithRedirectCallback
-          signInFallbackRedirectUrl="/"
-          signUpFallbackRedirectUrl="/"
-        />
-      </div>
-    );
+    window.location.replace('/');
+    return null;
   }
 
   // 1. Show professional Domain Rejection Screen if email domain was rejected

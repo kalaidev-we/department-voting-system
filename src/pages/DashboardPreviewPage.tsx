@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../lib/clerk';
+import { useAuth } from '../context/AuthContext';
 import { supabase, findStudentByEmail, getActiveElections } from '../lib/supabase';
 import {
   ShieldCheck,
@@ -19,12 +19,12 @@ import {
 import confetti from 'canvas-confetti';
 
 export function DashboardPreviewPage() {
-  const { user, signOut } = useAuth();
+  const { profile, signOut } = useAuth();
   const [studentData, setStudentData] = useState<any>(null);
   const [elections, setElections] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const email = user?.primaryEmailAddress?.emailAddress || 'student@kpriet.ac.in';
+  const email = profile?.email || 'student@kpriet.ac.in';
 
   useEffect(() => {
     confetti({
@@ -92,8 +92,8 @@ export function DashboardPreviewPage() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
             <div className="flex items-center space-x-4">
               <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white overflow-hidden shadow-md shrink-0">
-                {user?.imageUrl ? (
-                  <img src={user.imageUrl} alt="Profile" className="w-full h-full object-cover" />
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
                   <User className="w-8 h-8" />
                 )}
@@ -106,7 +106,7 @@ export function DashboardPreviewPage() {
                 </div>
 
                 <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-                  {user?.fullName || 'KPRIET Student'}
+                  {profile?.full_name || 'KPRIET Student'}
                 </h2>
 
                 <p className="text-xs sm:text-sm text-blue-100 font-mono">

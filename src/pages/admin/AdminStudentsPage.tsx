@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StudentRosterItem } from '../../lib/types';
 import { fetchStudentRoster, importStudentsFromCSV } from '../../services/adminService';
 import {
@@ -12,11 +12,23 @@ import {
   Plus,
   ShieldCheck,
   X,
+  Download,
+  FileText,
+  Upload,
+  RefreshCw,
 } from 'lucide-react';
 
 interface AdminStudentsPageProps {
   onBack: () => void;
 }
+
+const SAMPLE_CSV_TEMPLATE = `student_id,full_name,email,department,year,section
+26SCL01,Aravind Swaminathan,26scl01@kpriet.ac.in,Cybersecurity Department,1st Year,A
+26SCL02,Bhavana Priya K,26scl02@kpriet.ac.in,Cybersecurity Department,1st Year,A
+26SCL03,Charan Raj M,26scl03@kpriet.ac.in,Cybersecurity Department,1st Year,A
+26CS101,Dharshini S,26cs101@kpriet.ac.in,Computer Science and Engineering,1st Year,B
+26CS102,Eashwar Kumar V,26cs102@kpriet.ac.in,Computer Science and Engineering,1st Year,B
+26AD101,Gokul Prasad N,26ad101@kpriet.ac.in,Artificial Intelligence and Data Science,1st Year,A`;
 
 export function AdminStudentsPage({ onBack }: AdminStudentsPageProps) {
   const [students, setStudents] = useState<StudentRosterItem[]>([]);
@@ -24,19 +36,53 @@ export function AdminStudentsPage({ onBack }: AdminStudentsPageProps) {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [csvContent, setCsvContent] = useState('');
   const [importStatus, setImportStatus] = useState<{ count: number; errors: string[] } | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoadingList, setIsLoadingList] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadData = async () => {
+    setIsLoadingList(true);
     const list = await fetchStudentRoster();
     setStudents(list);
+    setIsLoadingList(false);
   };
 
   useEffect(() => {
     loadData();
   }, []);
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target?.result as string;
+      if (text) {
+        setCsvContent(text);
+        setImportStatus(null);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleDownloadTemplate = () => {
+    const blob = new Blob([SAMPLE_CSV_TEMPLATE], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'students_template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleImportCSV = async () => {
     if (!csvContent.trim()) return;
+    setIsProcessing(true);
     const result = await importStudentsFromCSV(csvContent);
+    setIsProcessing(false);
     setImportStatus({ count: result.importedCount, errors: result.errors });
     await loadData();
     if (result.errors.length === 0) {
@@ -44,9 +90,28 @@ export function AdminStudentsPage({ onBack }: AdminStudentsPageProps) {
         setIsImportModalOpen(false);
         setCsvContent('');
         setImportStatus(null);
-      }, 1500);
+      }, 1800);
     }
   };
+
+  // Live parsed preview of CSV lines
+  const parsedPreviewRows = React.useMemo(() => {
+    if (!csvContent.trim()) return [];
+    const lines = csvContent.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+    if (lines.length < 2) return [];
+
+    return lines.slice(1).map((line) => {
+      const parts = line.split(',').map((p) => p.trim().replace(/^"|"$/g, ''));
+      return {
+        id: parts[0] || '',
+        name: parts[1] || '',
+        email: parts[2] || '',
+        department: parts[3] || 'Cybersecurity',
+        year: parts[4] || '1st Year',
+        section: parts[5] || 'A',
+      };
+    }).filter((r) => r.id && r.email);
+  }, [csvContent]);
 
   const filtered = students.filter(
     (s) =>
@@ -77,27 +142,49 @@ export function AdminStudentsPage({ onBack }: AdminStudentsPageProps) {
           </div>
         </div>
 
-        <button
-          onClick={() => setIsImportModalOpen(true)}
-          className="h-9 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-xs cursor-pointer"
-        >
-          <UploadCloud className="w-4 h-4" />
-          <span>Import CSV</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={handleDownloadTemplate}
+            className="h-9 px-3 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold flex items-center space-x-1.5 shadow-xs cursor-pointer"
+            title="Download CSV Template"
+          >
+            <Download className="w-3.5 h-3.5 text-slate-500" />
+            <span className="hidden sm:inline">Download Template</span>
+          </button>
+
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="h-9 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-xs cursor-pointer"
+          >
+            <UploadCloud className="w-4 h-4" />
+            <span>Import CSV</span>
+          </button>
+        </div>
       </header>
 
       {/* Main Container */}
       <main className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-5 space-y-4">
-        {/* Search Bar */}
-        <div className="relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search student by roll number, name, or email..."
-            className="w-full h-10 pl-9 pr-4 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-500"
-          />
+        {/* Search Bar & Refresh */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search student by roll number, name, or email..."
+              className="w-full h-10 pl-9 pr-4 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+          <button
+            onClick={loadData}
+            disabled={isLoadingList}
+            className="h-10 px-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-600 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            title="Reload from Database"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoadingList ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
         </div>
 
         {/* Student Roster Table */}
@@ -118,8 +205,17 @@ export function AdminStudentsPage({ onBack }: AdminStudentsPageProps) {
                 <Users className="w-8 h-8 text-slate-300 mx-auto" />
                 <h4 className="text-sm font-bold text-slate-800">No Student Records Found</h4>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                  No student voters have been imported or registered in the database yet. Click "Import CSV" above to bulk-register students.
+                  No student voters found in database. Click "Import CSV" above to bulk-register students with the CSV template.
                 </p>
+                <div className="pt-2">
+                  <button
+                    onClick={() => setIsImportModalOpen(true)}
+                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 text-xs font-bold hover:bg-indigo-100 transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Open CSV Importer</span>
+                  </button>
+                </div>
               </div>
             ) : (
               filtered.map((student) => (
@@ -161,10 +257,10 @@ export function AdminStudentsPage({ onBack }: AdminStudentsPageProps) {
         </div>
       </main>
 
-      {/* Import CSV Modal */}
+      {/* Enhanced Import CSV Modal */}
       {isImportModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-lg rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4">
+          <div className="bg-white w-full max-w-xl rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <FileSpreadsheet className="w-5 h-5 text-indigo-600" />
@@ -177,32 +273,89 @@ export function AdminStudentsPage({ onBack }: AdminStudentsPageProps) {
                   setIsImportModalOpen(false);
                   setImportStatus(null);
                 }}
-                className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 cursor-pointer"
+                className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
+            {/* Quick action bar inside modal */}
+            <div className="flex flex-wrap items-center gap-2 pt-1 pb-1 border-b border-slate-100 text-xs">
+              <button
+                type="button"
+                onClick={handleDownloadTemplate}
+                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5 text-slate-500" />
+                <span>Download Template CSV</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setCsvContent(SAMPLE_CSV_TEMPLATE);
+                  setImportStatus(null);
+                }}
+                className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Load Sample Data</span>
+              </button>
+
+              <label className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ml-auto">
+                <Upload className="w-3.5 h-3.5 text-slate-500" />
+                <span>Upload .csv File</span>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
             <p className="text-xs text-slate-500">
-              Paste CSV data with headers: <code className="bg-slate-100 px-1 py-0.5 rounded text-indigo-600 font-mono">student_id,full_name,email,department</code>. All emails must end with <code className="font-bold">@kpriet.ac.in</code>.
+              Paste or upload CSV with headers: <code className="bg-slate-100 px-1 py-0.5 rounded text-indigo-600 font-mono font-bold">student_id,full_name,email,department,year,section</code>. All emails must end with <code className="font-bold text-slate-700">@kpriet.ac.in</code>.
             </p>
 
             <textarea
               value={csvContent}
               onChange={(e) => setCsvContent(e.target.value)}
-              placeholder={`student_id,full_name,email,department\n26SCL04,Deepak M,26scl04@kpriet.ac.in,Cybersecurity Department\n26CS102,Ananya R,26cs102@kpriet.ac.in,Computer Science and Engineering`}
-              rows={6}
-              className="w-full p-3 font-mono text-[11px] bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:border-indigo-500"
+              placeholder={`student_id,full_name,email,department,year,section\n26SCL04,Deepak M,26scl04@kpriet.ac.in,Cybersecurity Department,1st Year,A\n26CS102,Ananya R,26cs102@kpriet.ac.in,Computer Science and Engineering,1st Year,B`}
+              rows={5}
+              className="w-full p-3 font-mono text-[11px] bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:border-indigo-500 shrink-0"
             />
 
+            {/* Live Parsed Preview Table */}
+            {parsedPreviewRows.length > 0 && (
+              <div className="flex-1 overflow-hidden flex flex-col space-y-1.5 border border-slate-200 rounded-xl p-2.5 bg-slate-50/50">
+                <div className="flex items-center justify-between text-[11px] font-bold text-slate-600">
+                  <span>Data Preview ({parsedPreviewRows.length} valid students ready)</span>
+                  <span className="text-emerald-600 font-semibold">Valid Format</span>
+                </div>
+                <div className="overflow-y-auto max-h-32 text-[11px] divide-y divide-slate-200 bg-white rounded-lg border border-slate-100">
+                  {parsedPreviewRows.map((r, i) => (
+                    <div key={i} className="px-2.5 py-1.5 flex items-center justify-between gap-2">
+                      <div className="font-mono font-bold text-slate-800 w-18 shrink-0">{r.id}</div>
+                      <div className="truncate font-medium text-slate-900 flex-1">{r.name}</div>
+                      <div className="truncate text-slate-500 text-[10px] w-36 shrink-0">{r.email}</div>
+                      <div className="text-[10px] text-indigo-600 font-semibold shrink-0">{r.year}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Ingestion Status Result */}
             {importStatus && (
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
                 <div className="font-bold text-slate-800 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>Successfully imported {importStatus.count} student voters.</span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Successfully imported and synced {importStatus.count} student voters into database.</span>
                 </div>
                 {importStatus.errors.length > 0 && (
-                  <div className="text-rose-600 text-[11px] space-y-0.5 pt-1 border-t border-slate-200">
+                  <div className="text-rose-600 text-[11px] space-y-0.5 pt-1 border-t border-slate-200 max-h-24 overflow-y-auto">
                     {importStatus.errors.map((err, i) => (
                       <p key={i}>&bull; {err}</p>
                     ))}
@@ -217,16 +370,16 @@ export function AdminStudentsPage({ onBack }: AdminStudentsPageProps) {
                   setIsImportModalOpen(false);
                   setImportStatus(null);
                 }}
-                className="flex-1 h-10 bg-slate-100 text-slate-700 font-semibold rounded-xl text-xs cursor-pointer"
+                className="flex-1 h-10 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleImportCSV}
-                disabled={!csvContent.trim()}
-                className="flex-1 h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs disabled:opacity-50 cursor-pointer shadow-xs"
+                disabled={!csvContent.trim() || isProcessing}
+                className="flex-1 h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs disabled:opacity-50 transition-colors cursor-pointer shadow-xs"
               >
-                Process & Ingest
+                {isProcessing ? 'Ingesting to DB...' : 'Process & Ingest to Database'}
               </button>
             </div>
           </div>

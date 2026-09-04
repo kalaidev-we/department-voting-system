@@ -29,6 +29,8 @@ interface VotingPageProps {
 
 export function VotingPage({ electionId = 'el-001', onBack, onVoteSuccess }: VotingPageProps) {
   const { profile } = useAuth();
+  const voterId = profile?.id || profile?.student_id || profile?.email || 'voter-001';
+
   const [election, setElection] = useState<Election | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [selectedCandidateId, setSelectedCandidateId] = useState<string>('');
@@ -51,11 +53,11 @@ export function VotingPage({ electionId = 'el-001', onBack, onVoteSuccess }: Vot
         setSelectedCandidateId(list[0].id);
       }
 
-      const voted = await hasStudentVoted(electionId, profile?.id || profile?.student_id || '26SCL03');
+      const voted = await hasStudentVoted(electionId, voterId);
       setAlreadyVoted(voted);
     }
     load();
-  }, [electionId, profile]);
+  }, [electionId, profile, voterId]);
 
   const selectedCandidate = candidates.find((c) => c.id === selectedCandidateId);
 
@@ -76,7 +78,7 @@ export function VotingPage({ electionId = 'el-001', onBack, onVoteSuccess }: Vot
     const result = await submitVote({
       electionId,
       candidateId: selectedCandidate.id,
-      studentId: profile?.id || profile?.student_id || '26SCL03',
+      studentId: voterId,
       electionTitle: election?.title || 'Campus Election',
       candidateName: selectedCandidate.name,
     });

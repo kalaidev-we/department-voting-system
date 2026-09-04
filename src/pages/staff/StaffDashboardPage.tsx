@@ -14,12 +14,14 @@ import { Vote, Filter, Plus, ChevronRight, CheckCircle2, ShieldCheck, FileCheck 
 interface StaffDashboardPageProps {
   onNavigateTab: (tab: string) => void;
   onSelectElection?: (election: Election) => void;
+  onCastStaffVote?: (electionId: string) => void;
   onViewStaffReceipt?: (receipt: VoteReceipt) => void;
 }
 
 export function StaffDashboardPage({
   onNavigateTab,
   onSelectElection,
+  onCastStaffVote,
   onViewStaffReceipt,
 }: StaffDashboardPageProps) {
   const { profile } = useAuth();
@@ -30,9 +32,9 @@ export function StaffDashboardPage({
     participationRate: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [hasVotedAsStaff, setHasVotedAsStaff] = useState(false);
+  const [votedMap, setVotedMap] = useState<Record<string, boolean>>({});
 
-  const voterId = profile?.id || 'staff-kumar-001';
+  const voterId = profile?.id || profile?.student_id || profile?.email || 'staff-voter-001';
 
   // Dynamic time-based greeting
   const getGreeting = () => {
@@ -51,10 +53,14 @@ export function StaffDashboardPage({
         const computed = computeSummaryStats(list);
         setStats(computed);
 
-        // Check if staff has voted in the active election
-        const activeEl = list.find((e) => e.status === 'ACTIVE') || list[0];
-        const voted = activeEl ? await hasStudentVoted(activeEl.id, voterId) : false;
-        setHasVotedAsStaff(voted);
+        // Check if staff has voted in every election
+        const vMap: Record<string, boolean> = {};
+        await Promise.all(
+          list.map(async (el) => {
+            vMap[el.id] = await hasStudentVoted(el.id, voterId);
+          })
+        );
+        setVotedMap(vMap);
       } catch (e) {
         console.warn('Error loading dashboard data:', e);
       } finally {
@@ -63,6 +69,13 @@ export function StaffDashboardPage({
     }
     loadDashboardData();
   }, [voterId]);
+
+  const activeElections = elections.filter((e) => e.status === 'ACTIVE');
+  const votedActiveCount = activeElections.filter((e) => votedMap[e.id]).length;
+  const totalActive = activeElections.length;
+  const unvotedActive = activeElections.filter((e) => !votedMap[e.id]);
+  const hasVotedAllActive = totalActive > 0 && votedActiveCount === totalActive;
+  const hasVotedAnyActive = votedActiveCount > 0;
 
   const staffName = profile?.full_name || 'Dr. S. Kumar';
   const staffDepartment = profile?.department_name || 'Cybersecurity Department';
@@ -82,7 +95,7 @@ export function StaffDashboardPage({
           <p className="text-xs sm:text-sm font-semibold text-slate-500 flex flex-wrap items-center gap-1.5">
             <span>{staffDepartment}</span>
             <span className="text-slate-300">&bull;</span>
-            <span className="text-brand-600 font-bold">Staff Admin & Voter</span>
+            <span className="text-brand-600 font-bold">Faculty Member & Voter</span>
           </p>
         </section>
 
@@ -95,54 +108,78 @@ export function StaffDashboardPage({
           )}
         </section>
 
-        {/* Staff Voter Participation Banner */}
+        {/* Staff Voter Participation Banner across all elections */}
         <section className="p-4 sm:p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center space-x-3.5">
-            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
-              hasVotedAsStaff ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
-            }`}>
+            <div
+              className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                hasVotedAllActive
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : hasVotedAnyActive
+                  ? 'bg-indigo-100 text-indigo-700'
+                  : 'bg-blue-100 text-blue-700'
+              }`}
+            >
               <Vote className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
                 <h3 className="text-sm sm:text-base font-bold text-slate-900">
-                  Staff Voter Participation
+                  Staff Voting Access (All Elections)
                 </h3>
-                {hasVotedAsStaff && (
-                  <span className="px-2 py-0.2 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
-                    Ballot Cast
+                {totalActive > 0 && (
+                  <span
+                    className={`px-2 py-0.2 rounded-md text-[10px] font-bold border ${
+                      hasVotedAllActive
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                    }`}
+                  >
+                    {votedActiveCount}/{totalActive} Voted
                   </span>
                 )}
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                {hasVotedAsStaff
-                  ? 'Your faculty ballot has been cryptographically recorded in the anonymous ledger.'
-                  : 'As an authorized faculty member, you hold full voter eligibility for active ballots.'}
+                {totalActive === 0
+                  ? 'No active campus elections running at the moment.'
+                  : hasVotedAllActive
+                  ? 'All active ballots have been cast and recorded in the cryptographic ledger.'
+                  : `You hold full faculty voter eligibility for all ${totalActive} active elections.`}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2 w-full sm:w-auto shrink-0">
-            {hasVotedAsStaff ? (
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto shrink-0">
+            {unvotedActive.length > 0 && (
               <button
                 onClick={() => {
-                  const activeElId = elections.find((e) => e.status === 'ACTIVE')?.id || elections[0]?.id || '';
-                  const receipt = activeElId ? getStoredReceipt(activeElId, voterId) : null;
+                  const targetId = unvotedActive[0].id;
+                  if (onCastStaffVote) onCastStaffVote(targetId);
+                  else onNavigateTab('staff_vote');
+                }}
+                className="w-full sm:w-auto h-10 px-4 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 shadow-sm shadow-brand-500/20 transition-colors cursor-pointer"
+              >
+                <Vote className="w-4 h-4" />
+                <span>
+                  {unvotedActive.length === 1
+                    ? 'Cast Ballot'
+                    : `Vote in ${unvotedActive[0].title.slice(0, 18)}...`}
+                </span>
+              </button>
+            )}
+
+            {hasVotedAnyActive && (
+              <button
+                onClick={() => {
+                  const votedElection = elections.find((e) => votedMap[e.id]);
+                  const receipt = votedElection ? getStoredReceipt(votedElection.id, voterId) : null;
                   if (receipt && onViewStaffReceipt) onViewStaffReceipt(receipt);
                   else onNavigateTab('staff_vote');
                 }}
                 className="w-full sm:w-auto h-10 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer"
               >
                 <FileCheck className="w-4 h-4 text-slate-600" />
-                <span>View Receipt</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => onNavigateTab('staff_vote')}
-                className="w-full sm:w-auto h-10 px-4 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 shadow-sm shadow-brand-500/20 transition-colors cursor-pointer"
-              >
-                <Vote className="w-4 h-4" />
-                <span>Cast Staff Ballot</span>
+                <span>Latest Receipt</span>
               </button>
             )}
           </div>
@@ -154,8 +191,14 @@ export function StaffDashboardPage({
             onCreateElection={() => onNavigateTab('create_election')}
             onManageCandidates={() => onNavigateTab('candidates')}
             onViewAnalytics={() => onNavigateTab('analytics')}
-            onCastStaffVote={() => onNavigateTab('staff_vote')}
-            hasVoted={hasVotedAsStaff}
+            onCastStaffVote={() => {
+              if (unvotedActive.length > 0 && onCastStaffVote) {
+                onCastStaffVote(unvotedActive[0].id);
+              } else {
+                onNavigateTab('staff_vote');
+              }
+            }}
+            hasVoted={hasVotedAllActive}
           />
         </section>
 
@@ -163,9 +206,9 @@ export function StaffDashboardPage({
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Assigned Elections
+              Campus Elections & Faculty Ballots
             </h3>
-            
+
             <button
               onClick={() => onNavigateTab('elections')}
               className="text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center space-x-0.5 cursor-pointer"
@@ -189,7 +232,7 @@ export function StaffDashboardPage({
               <div>
                 <h4 className="text-sm font-bold text-slate-800">No elections yet</h4>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  You don't have any elections assigned to you.
+                  No active or scheduled elections found.
                 </p>
               </div>
               <button
@@ -205,7 +248,28 @@ export function StaffDashboardPage({
                 <ElectionCard
                   key={election.id}
                   election={election}
-                  onClick={() => onSelectElection && onSelectElection(election)}
+                  hasVoted={Boolean(votedMap[election.id])}
+                  onVote={() => {
+                    if (onCastStaffVote) onCastStaffVote(election.id);
+                    else if (onSelectElection) onSelectElection(election);
+                    else onNavigateTab('staff_vote');
+                  }}
+                  onViewReceipt={() => {
+                    const r = getStoredReceipt(election.id, voterId);
+                    if (r && onViewStaffReceipt) onViewStaffReceipt(r);
+                  }}
+                  onClick={() => {
+                    if (election.status === 'ACTIVE' && !votedMap[election.id]) {
+                      if (onCastStaffVote) onCastStaffVote(election.id);
+                      else if (onSelectElection) onSelectElection(election);
+                      else onNavigateTab('staff_vote');
+                    } else if (votedMap[election.id]) {
+                      const r = getStoredReceipt(election.id, voterId);
+                      if (r && onViewStaffReceipt) onViewStaffReceipt(r);
+                    } else if (onSelectElection) {
+                      onSelectElection(election);
+                    }
+                  }}
                 />
               ))}
             </div>

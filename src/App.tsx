@@ -397,6 +397,16 @@ function ApplicationRouter() {
       return wrapWithOfflineBanner(
         <StaffDashboardPage
           onNavigateTab={handleAdminNavigation}
+          onSelectElection={(election) => {
+            setStaffActiveElectionId(election.id);
+            setActiveElectionId(election.id);
+            setAdminTab('admin_vote');
+          }}
+          onCastStaffVote={(electionId) => {
+            setStaffActiveElectionId(electionId);
+            setActiveElectionId(electionId);
+            setAdminTab('admin_vote');
+          }}
           onViewStaffReceipt={(receipt) => {
             setAdminReceipt(receipt);
             setAdminTab('admin_receipt');
@@ -489,6 +499,18 @@ function ApplicationRouter() {
       return wrapWithOfflineBanner(
         <StaffElectionsPage
           onNavigateTab={handleStaffNavigation}
+          onSelectElection={(election) => {
+            setStaffActiveElectionId(election.id);
+            setStaffTab('staff_vote');
+          }}
+          onCastStaffVote={(electionId) => {
+            setStaffActiveElectionId(electionId);
+            setStaffTab('staff_vote');
+          }}
+          onViewStaffReceipt={(receipt) => {
+            setStaffReceipt(receipt);
+            setStaffTab('staff_receipt');
+          }}
         />
       );
     }
@@ -562,6 +584,14 @@ function ApplicationRouter() {
     return wrapWithOfflineBanner(
       <StaffDashboardPage
         onNavigateTab={handleStaffNavigation}
+        onSelectElection={(election) => {
+          setStaffActiveElectionId(election.id);
+          setStaffTab('staff_vote');
+        }}
+        onCastStaffVote={(electionId) => {
+          setStaffActiveElectionId(electionId);
+          setStaffTab('staff_vote');
+        }}
         onViewStaffReceipt={(receipt) => {
           setStaffReceipt(receipt);
           setStaffTab('staff_receipt');

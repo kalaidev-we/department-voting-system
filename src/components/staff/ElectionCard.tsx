@@ -1,10 +1,13 @@
 import React from 'react';
 import { Election, ElectionStatus } from '../../lib/types';
-import { Clock, Users, CheckCircle2, ChevronRight } from 'lucide-react';
+import { Clock, Users, CheckCircle2, ChevronRight, Vote, FileCheck } from 'lucide-react';
 
 interface ElectionCardProps {
   election: Election;
   onClick?: () => void;
+  hasVoted?: boolean;
+  onVote?: () => void;
+  onViewReceipt?: () => void;
 }
 
 const STATUS_CONFIG: Record<
@@ -55,7 +58,13 @@ const STATUS_CONFIG: Record<
   },
 };
 
-export function ElectionCard({ election, onClick }: ElectionCardProps) {
+export function ElectionCard({
+  election,
+  onClick,
+  hasVoted = false,
+  onVote,
+  onViewReceipt,
+}: ElectionCardProps) {
   const statusCfg = STATUS_CONFIG[election.status] || STATUS_CONFIG.ACTIVE;
 
   // Calculate dynamic time remaining or status
@@ -85,9 +94,14 @@ export function ElectionCard({ election, onClick }: ElectionCardProps) {
     >
       {/* Top row: Type & Status Badge */}
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold text-brand-700 tracking-wide uppercase">
-          {election.election_type}
-        </span>
+        <div className="flex items-center space-x-2">
+          <span className="text-[11px] font-bold text-brand-700 tracking-wide uppercase">
+            {election.election_type}
+          </span>
+          <span className="px-2 py-0.2 rounded-md bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-100">
+            Faculty Eligible
+          </span>
+        </div>
 
         <span
           className={`inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${statusCfg.bg} ${statusCfg.text}`}
@@ -109,9 +123,9 @@ export function ElectionCard({ election, onClick }: ElectionCardProps) {
         )}
       </div>
 
-      {/* Metrics Row: Eligible vs Votes Cast & Timer */}
-      <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
-        <div className="flex items-center space-x-3">
+      {/* Metrics Row: Eligible vs Votes Cast & Voting Action */}
+      <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
           <span className="font-semibold text-slate-800">
             {election.eligible_voters_count.toLocaleString()}{' '}
             <span className="text-slate-400 font-normal">Eligible</span>
@@ -121,12 +135,51 @@ export function ElectionCard({ election, onClick }: ElectionCardProps) {
             {election.votes_count.toLocaleString()}{' '}
             <span className="text-slate-400 font-normal">Votes</span>
           </span>
+          <span className="text-slate-300">&bull;</span>
+          <div className="flex items-center space-x-1 text-slate-500 font-medium text-[11px]">
+            <Clock className="w-3.5 h-3.5 text-slate-400" />
+            <span>{calculateRemainingTime()}</span>
+          </div>
         </div>
 
-        <div className="flex items-center space-x-1 text-slate-500 font-medium text-[11px]">
-          <Clock className="w-3.5 h-3.5 text-slate-400" />
-          <span>{calculateRemainingTime()}</span>
-          <ChevronRight className="w-3.5 h-3.5 text-slate-300 ml-0.5" />
+        {/* Action Button: Cast Staff Ballot or View Receipt */}
+        <div
+          className="flex items-center space-x-2 self-start sm:self-auto shrink-0"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {hasVoted ? (
+            <div className="flex items-center space-x-1.5">
+              <span className="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Ballot Cast</span>
+              </span>
+              {onViewReceipt && (
+                <button
+                  type="button"
+                  onClick={onViewReceipt}
+                  className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
+                  title="View Sealed Receipt"
+                >
+                  <FileCheck className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Receipt</span>
+                </button>
+              )}
+            </div>
+          ) : election.status === 'ACTIVE' ? (
+            <button
+              type="button"
+              onClick={onVote || onClick}
+              className="h-8 sm:h-9 px-3.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-sm shadow-brand-500/20 transition-all cursor-pointer"
+            >
+              <Vote className="w-4 h-4" />
+              <span>Cast Staff Ballot</span>
+              <ChevronRight className="w-3.5 h-3.5 text-blue-200" />
+            </button>
+          ) : (
+            <span className="text-[11px] font-semibold text-slate-400">
+              {election.status === 'CLOSED' ? 'Voting Concluded' : 'Scheduled'}
+            </span>
+          )}
         </div>
       </div>
     </div>

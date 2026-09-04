@@ -9,21 +9,53 @@ export async function fetchStaffElections(): Promise<Election[]> {
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      // Map Supabase rows to Election model
-      return data.map((item: any) => ({
-        id: item.id,
-        title: item.title,
-        description: item.description || '',
-        election_type: item.election_type || 'Department Election',
-        status: (item.status as ElectionStatus) || 'ACTIVE',
-        eligible_voters_count: item.eligible_voters_count || 0,
-        votes_count: item.votes_count || 0,
-        start_at: item.start_at || new Date().toISOString(),
-        end_at: item.end_at || new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
-        department_name: item.department_name || 'All Departments',
-        academic_year: item.academic_year || '2026-2027',
-        created_at: item.created_at,
-      }));
+      // Query database for true registered student count
+      let trueRegisteredVoters = 0;
+      try {
+        const [{ count: studentCount }, { count: profileCount }] = await Promise.all([
+          supabase.from('students').select('*', { count: 'exact', head: true }),
+          supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'STUDENT'),
+        ]);
+        trueRegisteredVoters = Math.max(studentCount || 0, profileCount || 0);
+      } catch {
+        // Ignore
+      }
+
+      // Map Supabase rows with exact live database vote counts
+      return await Promise.all(
+        data.map(async (item: any) => {
+          let trueVotes = item.votes_count || 0;
+          try {
+            const [{ count: ledgerCount }, { count: anonCount }] = await Promise.all([
+              supabase.from('vote_ledger').select('*', { count: 'exact', head: true }).eq('election_id', item.id),
+              supabase.from('anonymous_votes').select('*', { count: 'exact', head: true }).eq('election_id', item.id),
+            ]);
+            trueVotes = Math.max(trueVotes, ledgerCount || 0, anonCount || 0);
+          } catch {
+            // Ignore
+          }
+
+          const trueElectorate =
+            item.eligible_voters_count > 0 && item.eligible_voters_count !== 23
+              ? item.eligible_voters_count
+              : Math.max(trueRegisteredVoters, trueVotes, 1);
+
+          return {
+            id: item.id,
+            title: item.title,
+            description: item.description || '',
+            election_type: item.election_type || 'Department Election',
+            status: (item.status as ElectionStatus) || 'ACTIVE',
+            eligible_voters_count: trueElectorate,
+            votes_count: trueVotes,
+            start_at: item.start_at || new Date().toISOString(),
+            end_at: item.end_at || new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+            department_name: item.department_name || 'All Departments',
+            academic_year: item.academic_year || '2026-2027',
+            created_at: item.created_at,
+          };
+        })
+      );
     }
     if (error) {
       console.error('Error fetching elections from Supabase:', error.message);
@@ -44,14 +76,35 @@ export async function fetchElectionById(id: string): Promise<Election | null> {
       .maybeSingle();
 
     if (!error && data) {
+      let trueVotes = data.votes_count || 0;
+      let trueRegistered = 0;
+      try {
+        const [{ count: ledgerCount }, { count: anonCount }, { count: studCount }, { count: profCount }] =
+          await Promise.all([
+            supabase.from('vote_ledger').select('*', { count: 'exact', head: true }).eq('election_id', id),
+            supabase.from('anonymous_votes').select('*', { count: 'exact', head: true }).eq('election_id', id),
+            supabase.from('students').select('*', { count: 'exact', head: true }),
+            supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'STUDENT'),
+          ]);
+        trueVotes = Math.max(trueVotes, ledgerCount || 0, anonCount || 0);
+        trueRegistered = Math.max(studCount || 0, profCount || 0);
+      } catch {
+        // Ignore
+      }
+
+      const electorate =
+        data.eligible_voters_count > 0 && data.eligible_voters_count !== 23
+          ? data.eligible_voters_count
+          : Math.max(trueRegistered, trueVotes, 1);
+
       return {
         id: data.id,
         title: data.title,
         description: data.description || '',
         election_type: data.election_type || 'Department Election',
         status: (data.status as ElectionStatus) || 'ACTIVE',
-        eligible_voters_count: data.eligible_voters_count || 0,
-        votes_count: data.votes_count || 0,
+        eligible_voters_count: electorate,
+        votes_count: trueVotes,
         start_at: data.start_at || new Date().toISOString(),
         end_at: data.end_at || new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
         department_name: data.department_name || 'All Departments',

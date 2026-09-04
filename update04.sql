@@ -11,6 +11,21 @@ GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL ROUTINES IN SCHEMA public TO anon, authenticated;
 
+-- 1B. PROFILES TABLE COMPATIBILITY & REAL DATA COLUMNS
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS student_id VARCHAR(50);
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS department_name VARCHAR(255);
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS year VARCHAR(50);
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS academic_batch VARCHAR(100);
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS section VARCHAR(10);
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "profiles_anon_select" ON profiles;
+DROP POLICY IF EXISTS "profiles_anon_insert" ON profiles;
+DROP POLICY IF EXISTS "profiles_anon_update" ON profiles;
+CREATE POLICY "profiles_anon_select" ON profiles FOR SELECT TO anon, authenticated USING (TRUE);
+CREATE POLICY "profiles_anon_insert" ON profiles FOR INSERT TO anon, authenticated WITH CHECK (TRUE);
+CREATE POLICY "profiles_anon_update" ON profiles FOR UPDATE TO anon, authenticated USING (TRUE) WITH CHECK (TRUE);
+
 -- 2. CANDIDATE APPLICATIONS SCHEMA FIXES
 -- Drop restrictive foreign keys and convert user_id & student_id to VARCHAR so Clerk IDs (user_...) are accepted
 
@@ -243,7 +258,7 @@ SELECT
     ca.department,
     ca.slogan,
     ca.manifesto,
-    COALESCE(ca.photo_url, 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80'),
+    ca.photo_url,
     COALESCE(ca.symbol, '🛡️ Shield'),
     0
 FROM candidate_applications ca
@@ -260,6 +275,12 @@ WHERE student_id ~* '^[0-9]{2}[A-Za-z]{2,4}L[0-9]+$'
    OR roll_number ~* '^[0-9]{2}[A-Za-z]{2,4}L[0-9]+$'
    OR student_id ILIKE '%scl%';
 
+UPDATE profiles
+SET year = '2nd Year'
+WHERE student_id ~* '^[0-9]{2}[A-Za-z]{2,4}L[0-9]+$'
+   OR student_id ILIKE '%scl%'
+   OR email ~* '^[0-9]{2}[A-Za-z]{2,4}l[0-9]+@';
+
 DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'students') THEN
@@ -270,15 +291,24 @@ BEGIN
     END IF;
 END $$;
 
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'profiles') THEN
-        UPDATE profiles
-        SET year = '2nd Year'
-        WHERE student_id ~* '^[0-9]{2}[A-Za-z]{2,4}L[0-9]+$'
-           OR student_id ILIKE '%scl%'
-           OR email ~* '^[0-9]{2}[A-Za-z]{2,4}l[0-9]+@';
-    END IF;
-END $$;
+-- 7. CLEAN UP HALLUCINATED / MOCK AVATARS AND ENSURE TRUE DATABASE DATA
+-- Remove any mock unsplash photos
+UPDATE candidates SET photo_url = NULL WHERE photo_url LIKE '%unsplash%';
+UPDATE candidate_applications SET photo_url = NULL WHERE photo_url LIKE '%unsplash%';
+
+-- Link actual profile avatar from profiles table if available
+UPDATE candidates c
+SET photo_url = p.avatar_url
+FROM profiles p
+WHERE (c.student_id = p.student_id OR c.email = p.email)
+  AND p.avatar_url IS NOT NULL 
+  AND p.avatar_url != ''
+  AND p.avatar_url NOT LIKE '%unsplash%';
+
+-- Ensure true eligible electorate data (fix any hardcoded/hallucinated counts like 23)
+UPDATE elections
+SET eligible_voters_count = GREATEST(votes_count, 1)
+WHERE eligible_voters_count = 23;
+
 
 

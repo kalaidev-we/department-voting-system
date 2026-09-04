@@ -37,13 +37,6 @@ const SYMBOL_OPTIONS = [
   '🔥 Torch of Leadership',
 ];
 
-const SAMPLE_PHOTOS = [
-  { label: 'Avatar 1', url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400&auto=format&fit=crop&q=80' },
-  { label: 'Avatar 2', url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=80' },
-  { label: 'Avatar 3', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80' },
-  { label: 'Avatar 4', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80' },
-];
-
 export function StaffAddCandidatePage({ onBack, onSuccess }: StaffAddCandidatePageProps) {
   const [elections, setElections] = useState<Election[]>([]);
   const [electionId, setElectionId] = useState('');
@@ -58,7 +51,7 @@ export function StaffAddCandidatePage({ onBack, onSuccess }: StaffAddCandidatePa
   const [slogan, setSlogan] = useState('');
   const [manifesto, setManifesto] = useState('');
   const [symbol, setSymbol] = useState(SYMBOL_OPTIONS[0]);
-  const [photoUrl, setPhotoUrl] = useState(SAMPLE_PHOTOS[0].url);
+  const [photoUrl, setPhotoUrl] = useState('');
 
   // Google profile state
   const [googleAvatarUrl, setGoogleAvatarUrl] = useState<string | null>(null);
@@ -434,18 +427,23 @@ export function StaffAddCandidatePage({ onBack, onSuccess }: StaffAddCandidatePa
             {/* Current Active Photo Preview */}
             <div className="flex items-center space-x-4">
               <div className="relative">
-                <img
-                  src={photoUrl}
-                  alt="Candidate preview"
-                  className="w-16 h-16 rounded-2xl object-cover border-2 border-brand-500 shadow-sm"
-                  onError={(e) => {
-                    // Fallback to sample photo if image link is invalid
-                    (e.target as HTMLImageElement).src = SAMPLE_PHOTOS[0].url;
-                  }}
-                />
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-brand-600 text-white flex items-center justify-center text-[10px] font-bold shadow-xs">
-                  ✓
-                </div>
+                {photoUrl ? (
+                  <img
+                    src={photoUrl}
+                    alt="Candidate preview"
+                    className="w-16 h-16 rounded-2xl object-cover border-2 border-brand-500 shadow-sm"
+                    onError={() => setPhotoUrl('')}
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xl border-2 border-blue-200 shadow-sm">
+                    {name ? name.charAt(0).toUpperCase() : 'C'}
+                  </div>
+                )}
+                {photoUrl && (
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-brand-600 text-white flex items-center justify-center text-[10px] font-bold shadow-xs">
+                    ✓
+                  </div>
+                )}
               </div>
 
               <div className="min-w-0 flex-1">
@@ -474,41 +472,10 @@ export function StaffAddCandidatePage({ onBack, onSuccess }: StaffAddCandidatePa
                   }`}
                 >
                   <Sparkles className="w-3 h-3" />
-                  <span>Use Gmail Profile Picture</span>
+                  <span>Use Verified Google Profile Photo</span>
                 </button>
               </div>
             )}
-
-            {/* Alternative preset avatars */}
-            <div className="pt-2 border-t border-slate-200">
-              <label className="text-[11px] font-semibold text-slate-600 block mb-1.5">
-                Or select from standard portrait presets:
-              </label>
-              <div className="flex items-center space-x-3">
-                {SAMPLE_PHOTOS.map((photo, i) => (
-                  <div
-                    key={i}
-                    onClick={() => setPhotoUrl(photo.url)}
-                    className={`relative rounded-xl cursor-pointer transition-all ${
-                      photoUrl === photo.url
-                        ? 'ring-2 ring-brand-600 ring-offset-2 scale-105'
-                        : 'opacity-70 hover:opacity-100'
-                    }`}
-                  >
-                    <img
-                      src={photo.url}
-                      alt={photo.label}
-                      className="w-11 h-11 rounded-xl object-cover"
-                    />
-                    {photoUrl === photo.url && (
-                      <div className="absolute inset-0 bg-brand-600/20 rounded-xl flex items-center justify-center">
-                        <CheckCircle2 className="w-4 h-4 text-white" />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
 
           {/* Campaign Slogan */}

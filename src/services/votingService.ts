@@ -23,6 +23,7 @@ export async function fetchCandidates(electionId?: string): Promise<Candidate[]>
 
     if (!error && data) {
       data.forEach((item: any) => {
+        const photo = item.photo_url && !item.photo_url.includes('unsplash') ? item.photo_url : null;
         candidateMap.set(item.id, {
           id: item.id,
           election_id: item.election_id,
@@ -32,7 +33,7 @@ export async function fetchCandidates(electionId?: string): Promise<Candidate[]>
           department: item.department || '',
           slogan: item.slogan || '',
           manifesto: item.manifesto || '',
-          photo_url: item.photo_url || '',
+          photo_url: photo,
           symbol: item.symbol || '🛡️ Shield',
           votes_count: item.votes_count || 0,
           created_at: item.created_at,
@@ -55,7 +56,6 @@ export async function fetchCandidates(electionId?: string): Promise<Candidate[]>
 
     if (!appErr && appData) {
       appData.forEach((app: any) => {
-        // Prevent duplicate by matching roll number or email or name within the same election
         const alreadyExists = Array.from(candidateMap.values()).some(
           (c) =>
             c.election_id === app.election_id &&
@@ -63,6 +63,8 @@ export async function fetchCandidates(electionId?: string): Promise<Candidate[]>
               (app.student_id && c.student_id === app.student_id) ||
               c.name.toLowerCase() === app.full_name?.toLowerCase())
         );
+
+        const cleanPhoto = app.photo_url && !app.photo_url.includes('unsplash') ? app.photo_url : null;
 
         if (!alreadyExists) {
           const candidateObj: Candidate = {
@@ -74,9 +76,7 @@ export async function fetchCandidates(electionId?: string): Promise<Candidate[]>
             department: app.department || '',
             slogan: app.slogan || '',
             manifesto: app.manifesto || '',
-            photo_url:
-              app.photo_url ||
-              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+            photo_url: cleanPhoto,
             symbol: app.symbol || '🛡️ Shield',
             votes_count: 0,
             created_at: app.created_at,
@@ -92,7 +92,7 @@ export async function fetchCandidates(electionId?: string): Promise<Candidate[]>
             department: app.department || null,
             slogan: app.slogan || null,
             manifesto: app.manifesto || null,
-            photo_url: app.photo_url || null,
+            photo_url: cleanPhoto,
             symbol: app.symbol || '🛡️ Shield',
             votes_count: 0,
           }]).then(() => {}, () => {});
@@ -100,40 +100,51 @@ export async function fetchCandidates(electionId?: string): Promise<Candidate[]>
       });
     }
 
-    // 3. Check local storage approved applications
+    // 3. Resolve true Google/Clerk avatars from profiles table or active profile
     try {
-      const localApps: any[] = JSON.parse(localStorage.getItem('securevote_candidate_applications') || '[]');
-      localApps
-        .filter((a) => a.status === 'APPROVED' && (!electionId || electionId === 'all' || a.election_id === electionId))
-        .forEach((app) => {
-          const alreadyExists = Array.from(candidateMap.values()).some(
-            (c) =>
-              c.election_id === app.election_id &&
-              ((app.email && c.email?.toLowerCase() === app.email.toLowerCase()) ||
-                (app.student_id && c.student_id === app.student_id) ||
-                c.name.toLowerCase() === app.full_name?.toLowerCase())
-          );
-          if (!alreadyExists) {
-            candidateMap.set(app.id, {
-              id: app.id,
-              election_id: app.election_id,
-              name: app.full_name,
-              email: app.email || '',
-              student_id: app.roll_number || app.student_id || '',
-              department: app.department || '',
-              slogan: app.slogan || '',
-              manifesto: app.manifesto || '',
-              photo_url:
-                app.photo_url ||
-                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
-              symbol: app.symbol || '🛡️ Shield',
-              votes_count: 0,
-              created_at: app.submitted_at || new Date().toISOString(),
+      const { data: profs } = await supabase
+        .from('profiles')
+        .select('email, student_id, avatar_url');
+
+      if (profs && profs.length > 0) {
+        profs.forEach((p: any) => {
+          if (p.avatar_url && !p.avatar_url.includes('unsplash')) {
+            candidateMap.forEach((c) => {
+              if (
+                (!c.photo_url || c.photo_url.includes('unsplash')) &&
+                ((p.student_id && c.student_id && p.student_id.toUpperCase() === c.student_id.toUpperCase()) ||
+                  (p.email && c.email && p.email.toLowerCase() === c.email.toLowerCase()))
+              ) {
+                c.photo_url = p.avatar_url;
+              }
             });
           }
         });
+      }
     } catch {
-      // Ignored
+      // Ignore
+    }
+
+    // 4. Also check active local profile for instant sync of current user's Google avatar
+    try {
+      const activeRaw = localStorage.getItem('securevote_active_profile');
+      if (activeRaw) {
+        const activeProf = JSON.parse(activeRaw);
+        if (activeProf?.avatar_url && !activeProf.avatar_url.includes('unsplash')) {
+          candidateMap.forEach((c) => {
+            if (
+              (!c.photo_url || c.photo_url.includes('unsplash')) &&
+              ((activeProf.student_id && c.student_id && activeProf.student_id.toUpperCase() === c.student_id.toUpperCase()) ||
+                (activeProf.email && c.email && activeProf.email.toLowerCase() === c.email.toLowerCase()) ||
+                (activeProf.full_name && c.name && activeProf.full_name.toLowerCase() === c.name.toLowerCase()))
+            ) {
+              c.photo_url = activeProf.avatar_url;
+            }
+          });
+        }
+      }
+    } catch {
+      // Ignore
     }
 
     return Array.from(candidateMap.values());
@@ -164,9 +175,7 @@ export async function addStaffCandidate(payload: {
       department: payload.department || null,
       slogan: payload.slogan || null,
       manifesto: payload.manifesto || null,
-      photo_url:
-        payload.photo_url ||
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+      photo_url: payload.photo_url && !payload.photo_url.includes('unsplash') ? payload.photo_url : null,
       symbol: payload.symbol || '🛡️ Shield of Trust',
       votes_count: 0,
     };

@@ -99,6 +99,7 @@ export function CandidateApplyPage({ onBack, onSuccess }: CandidateApplyPageProp
       slogan: slogan.trim(),
       manifesto: manifesto.trim(),
       key_promises: [promise1, promise2, promise3].filter((p) => p.trim().length > 0),
+      photo_url: profile?.avatar_url || undefined,
     });
 
     setIsSubmitting(false);

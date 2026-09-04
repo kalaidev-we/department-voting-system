@@ -287,18 +287,29 @@ export function VotingPage({ electionId = 'el-001', onBack, onVoteSuccess }: Vot
                       }`}
                     >
                       <div className="flex items-center space-x-3.5 min-w-0">
-                        {/* Photo Avatar */}
-                        {candidate.photo_url ? (
-                          <img
-                            src={candidate.photo_url}
-                            alt={candidate.name}
-                            className="w-13 h-13 sm:w-14 sm:h-14 rounded-full object-cover shrink-0 ring-2 ring-slate-100"
-                          />
-                        ) : (
-                          <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-base shrink-0 ring-2 ring-slate-100">
-                            {candidate.name.charAt(0)}
-                          </div>
-                        )}
+                        {/* Photo Avatar: Resolved from candidate photo or real profile avatar */}
+                        {(() => {
+                          const isUnsplash = candidate.photo_url?.includes('unsplash');
+                          const resolvedPhoto =
+                            (!isUnsplash && candidate.photo_url) ||
+                            ((candidate.student_id?.toUpperCase() === profile?.student_id?.toUpperCase() ||
+                              candidate.email?.toLowerCase() === profile?.email?.toLowerCase() ||
+                              candidate.name?.toLowerCase() === profile?.full_name?.toLowerCase())
+                              ? profile?.avatar_url
+                              : null);
+
+                          return resolvedPhoto ? (
+                            <img
+                              src={resolvedPhoto}
+                              alt={candidate.name}
+                              className="w-13 h-13 sm:w-14 sm:h-14 rounded-full object-cover shrink-0 ring-2 ring-slate-100"
+                            />
+                          ) : (
+                            <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-base shrink-0 ring-2 ring-slate-100">
+                              {candidate.name.charAt(0)}
+                            </div>
+                          );
+                        })()}
 
                         <div className="min-w-0">
                           <h3 className="text-sm sm:text-base font-bold text-slate-900 truncate">
@@ -442,11 +453,28 @@ export function VotingPage({ electionId = 'el-001', onBack, onVoteSuccess }: Vot
           <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
             <div className="flex items-start justify-between">
               <div className="flex items-center space-x-3">
-                <img
-                  src={manifestoModalCandidate.photo_url}
-                  alt={manifestoModalCandidate.name}
-                  className="w-14 h-14 rounded-2xl object-cover ring-2 ring-blue-100"
-                />
+                {(() => {
+                  const isUnsplash = manifestoModalCandidate.photo_url?.includes('unsplash');
+                  const p =
+                    (!isUnsplash && manifestoModalCandidate.photo_url) ||
+                    ((manifestoModalCandidate.student_id?.toUpperCase() === profile?.student_id?.toUpperCase() ||
+                      manifestoModalCandidate.email?.toLowerCase() === profile?.email?.toLowerCase() ||
+                      manifestoModalCandidate.name?.toLowerCase() === profile?.full_name?.toLowerCase())
+                      ? profile?.avatar_url
+                      : null);
+
+                  return p ? (
+                    <img
+                      src={p}
+                      alt={manifestoModalCandidate.name}
+                      className="w-14 h-14 rounded-2xl object-cover ring-2 ring-blue-100"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-lg ring-2 ring-blue-100">
+                      {manifestoModalCandidate.name.charAt(0)}
+                    </div>
+                  );
+                })()}
                 <div>
                   <h3 className="text-base font-bold text-slate-900">
                     {manifestoModalCandidate.name}
@@ -542,17 +570,28 @@ export function VotingPage({ electionId = 'el-001', onBack, onVoteSuccess }: Vot
 
             {/* Selected Candidate Summary Box */}
             <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center space-x-3 text-left">
-              {selectedCandidate.photo_url ? (
-                <img
-                  src={selectedCandidate.photo_url}
-                  alt={selectedCandidate.name}
-                  className="w-12 h-12 rounded-full object-cover ring-2 ring-blue-500/30 shrink-0"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-base shrink-0 ring-2 ring-blue-500/30">
-                  {selectedCandidate.name.charAt(0)}
-                </div>
-              )}
+              {(() => {
+                const isUnsplash = selectedCandidate.photo_url?.includes('unsplash');
+                const p =
+                  (!isUnsplash && selectedCandidate.photo_url) ||
+                  ((selectedCandidate.student_id?.toUpperCase() === profile?.student_id?.toUpperCase() ||
+                    selectedCandidate.email?.toLowerCase() === profile?.email?.toLowerCase() ||
+                    selectedCandidate.name?.toLowerCase() === profile?.full_name?.toLowerCase())
+                    ? profile?.avatar_url
+                    : null);
+
+                return p ? (
+                  <img
+                    src={p}
+                    alt={selectedCandidate.name}
+                    className="w-12 h-12 rounded-full object-cover ring-2 ring-blue-500/30 shrink-0"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-base shrink-0 ring-2 ring-blue-500/30">
+                    {selectedCandidate.name.charAt(0)}
+                  </div>
+                );
+              })()}
               <div className="min-w-0">
                 <h4 className="text-sm font-bold text-slate-900 truncate">
                   {selectedCandidate.name}

@@ -71,6 +71,7 @@ export async function submitCandidateApplication(payload: {
   manifesto: string;
   key_promises?: string[];
   symbol?: string;
+  photo_url?: string;
 }): Promise<{ success: boolean; data?: CandidateApplication; error?: string }> {
   try {
     // Helper to check for standard RFC 4122 UUID format
@@ -89,6 +90,8 @@ export async function submitCandidateApplication(payload: {
       ? '2nd Year'
       : (payload.year || (parsedStudent.isValid ? parsedStudent.suggestedYear : '1st Year'));
 
+    const photoUrl = payload.photo_url && !payload.photo_url.includes('unsplash') ? payload.photo_url : null;
+
     const insertPayload: any = {
       election_id: payload.election_id,
       student_id: cleanRollNumber,
@@ -103,6 +106,7 @@ export async function submitCandidateApplication(payload: {
       manifesto: payload.manifesto,
       key_promises: payload.key_promises || [],
       symbol: payload.symbol || '🛡️ Shield',
+      photo_url: photoUrl,
       status: 'SUBMITTED',
       created_at: new Date().toISOString(),
     };
@@ -141,6 +145,7 @@ export async function submitCandidateApplication(payload: {
             manifesto: payload.manifesto,
             key_promises: payload.key_promises || [],
             symbol: payload.symbol || '🛡️ Shield',
+            photo_url: photoUrl || undefined,
             status: 'SUBMITTED',
             submitted_at: rpcData.created_at || new Date().toISOString(),
           },
@@ -179,6 +184,7 @@ export async function submitCandidateApplication(payload: {
         manifesto: payload.manifesto,
         key_promises: payload.key_promises || [],
         symbol: payload.symbol || '🛡️ Shield',
+        photo_url: photoUrl || undefined,
         status: 'SUBMITTED',
         submitted_at: new Date().toISOString(),
       };

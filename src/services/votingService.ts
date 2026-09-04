@@ -23,6 +23,7 @@ export async function fetchCandidates(electionId?: string): Promise<Candidate[]>
         id: item.id,
         election_id: item.election_id,
         name: item.name,
+        email: item.email || '',
         student_id: item.student_id || '',
         department: item.department || '',
         slogan: item.slogan || '',
@@ -47,6 +48,7 @@ export async function fetchCandidates(electionId?: string): Promise<Candidate[]>
 export async function addStaffCandidate(payload: {
   election_id: string;
   name: string;
+  email?: string;
   student_id?: string;
   department?: string;
   slogan?: string;
@@ -55,27 +57,44 @@ export async function addStaffCandidate(payload: {
   symbol?: string;
 }): Promise<{ success: boolean; data?: Candidate; error?: string }> {
   try {
+    const insertObj: any = {
+      election_id: payload.election_id,
+      name: payload.name,
+      student_id: payload.student_id || null,
+      department: payload.department || null,
+      slogan: payload.slogan || null,
+      manifesto: payload.manifesto || null,
+      photo_url:
+        payload.photo_url ||
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+      symbol: payload.symbol || '🛡️ Shield of Trust',
+      votes_count: 0,
+    };
+
+    if (payload.email) {
+      insertObj.email = payload.email.toLowerCase().trim();
+    }
+
     const { data, error } = await supabase
       .from('candidates')
-      .insert([
-        {
-          election_id: payload.election_id,
-          name: payload.name,
-          student_id: payload.student_id || null,
-          department: payload.department || null,
-          slogan: payload.slogan || null,
-          manifesto: payload.manifesto || null,
-          photo_url:
-            payload.photo_url ||
-            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
-          symbol: payload.symbol || '🛡️ Shield of Trust',
-          votes_count: 0,
-        },
-      ])
+      .insert([insertObj])
       .select()
       .single();
 
     if (error) {
+      // Defensive fallback if email column isn't added to candidates table yet
+      if (error.message.includes('email') || error.message.includes('department')) {
+        delete insertObj.email;
+        delete insertObj.department;
+        const { data: retryData, error: retryErr } = await supabase
+          .from('candidates')
+          .insert([insertObj])
+          .select()
+          .single();
+        if (!retryErr && retryData) {
+          return { success: true, data: retryData as Candidate };
+        }
+      }
       console.error('Candidate DB insert error:', error.message);
       return { success: false, error: error.message };
     }

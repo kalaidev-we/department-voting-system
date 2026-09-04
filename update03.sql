@@ -259,6 +259,19 @@ $$;
 GRANT EXECUTE ON FUNCTION import_student_roster(JSONB) TO authenticated;
 GRANT EXECUTE ON FUNCTION import_student_roster(JSONB) TO anon;
 
+-- 5. CANDIDATES TABLE ENHANCEMENTS FOR EMAIL & GOOGLE PROFILE LINKING
+ALTER TABLE candidates ADD COLUMN IF NOT EXISTS email VARCHAR(255);
+ALTER TABLE candidates ADD COLUMN IF NOT EXISTS department VARCHAR(255);
+
+DO $$
+BEGIN
+    ALTER TABLE candidates DROP CONSTRAINT IF EXISTS candidates_student_id_fkey;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+ALTER TABLE candidates ALTER COLUMN student_id TYPE VARCHAR(255);
+
 -- ============================================================================
 -- END OF MIGRATION UPDATE 03
 -- ============================================================================
+

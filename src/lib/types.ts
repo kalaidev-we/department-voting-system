@@ -67,6 +67,7 @@ export interface Candidate {
   id: string;
   name: string;
   election_id: string;
+  email?: string;
   slogan?: string;
   manifesto?: string;
   photo_url?: string;
@@ -147,6 +148,7 @@ export interface StudentRosterItem {
   section: string;
   admission_type: 'REGULAR' | 'LATERAL';
   is_eligible_to_vote: boolean;
+  avatar_url?: string;
 }
 
 export interface StaffMember {

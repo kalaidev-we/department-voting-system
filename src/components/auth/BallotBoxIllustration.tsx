@@ -153,8 +153,8 @@ export function BallotBoxIllustration({ className = '' }: { className?: string }
           <text
             x="0"
             y="0"
-            fontFamily="'Brush Script MT', 'Dancing Script', 'Caveat', cursive, sans-serif"
-            fontSize="19"
+            fontFamily="'Caveat', 'Dancing Script', 'Brush Script MT', cursive, sans-serif"
+            fontSize="22"
             fontWeight="bold"
             fill="#2563EB"
             letterSpacing="0.04em"
@@ -164,9 +164,9 @@ export function BallotBoxIllustration({ className = '' }: { className?: string }
           </text>
           <text
             x="8"
-            y="20"
-            fontFamily="'Brush Script MT', 'Dancing Script', 'Caveat', cursive, sans-serif"
-            fontSize="19"
+            y="22"
+            fontFamily="'Caveat', 'Dancing Script', 'Brush Script MT', cursive, sans-serif"
+            fontSize="22"
             fontWeight="bold"
             fill="#2563EB"
             letterSpacing="0.04em"

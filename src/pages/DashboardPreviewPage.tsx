@@ -142,7 +142,7 @@ export function DashboardPreviewPage() {
             <div>
               <h3 className="text-sm font-bold text-slate-900">Page 1 (Login & Auth) Complete!</h3>
               <p className="text-xs text-slate-600 mt-0.5">
-                Clerk Google Auth + strict @kpriet.ac.in domain verification + Supabase database connection active.
+                Supabase Authentication + strict @kpriet.ac.in domain verification + database connection active.
               </p>
             </div>
           </div>

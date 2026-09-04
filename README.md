@@ -98,7 +98,7 @@ SecureVote Campus replaces traditional paper and insecure online polls with an e
 | **Styling** | Tailwind CSS | Modern institutional UI with smooth responsive layout |
 | **Icons** | Lucide React | Lightweight, consistent iconography |
 | **Database** | Supabase (PostgreSQL 15+) | Relational storage with strict Row Level Security (RLS) |
-| **Authentication** | Clerk + Supabase GoTrue | Hybrid Google OAuth SSO and institutional password auth |
+| **Authentication** | Supabase Auth (GoTrue) | Direct Google OAuth SSO and Supabase Email/Password authentication |
 | **Cryptography** | Web Crypto API + `pgcrypto` | Client-side and server-side SHA-256 digest calculation |
 
 ---
@@ -119,7 +119,7 @@ SecureVote Campus replaces traditional paper and insecure online polls with an e
     │   ├── common/            # Dropdowns, loaders, and badges
     │   └── staff/             # Quick actions, election summary cards, navigation
     ├── context/
-    │   └── AuthContext.tsx    # Supabase session, Clerk SSO, and role hydration
+    │   └── AuthContext.tsx    # Supabase session, Google SSO, and role hydration
     ├── lib/
     │   ├── domainValidator.ts # Domain rules (@kpriet.ac.in) & Master Admin config
     │   ├── studentParser.ts   # Roll number regex intelligence and department mapping
@@ -173,7 +173,6 @@ Create a `.env` file in the root directory if customizing endpoints:
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
 VITE_ALLOWED_DOMAIN=@kpriet.ac.in
-VITE_CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
 ```
 
 ### 5. Start Development Server

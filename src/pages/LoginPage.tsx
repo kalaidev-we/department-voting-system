@@ -378,39 +378,7 @@ export function LoginPage() {
                 </span>
               </div>
 
-              {/* Fallback accordion for restrictive WiFi environments */}
-              <div className="mt-3">
-                <button
-                  type="button"
-                  onClick={() => setShowStudentFallback(!showStudentFallback)}
-                  className="text-[11px] text-slate-400 hover:text-blue-600 dark:text-slate-500 dark:hover:text-blue-400 font-medium inline-flex items-center gap-1 cursor-pointer transition-colors"
-                >
-                  <span>Trouble connecting? Verify with college email</span>
-                  {showStudentFallback ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                </button>
-
-                {showStudentFallback && (
-                  <form onSubmit={handleStudentEmailSubmit} className="mt-2.5 p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-left space-y-2.5 animate-fadeIn shadow-lg">
-                    <div className="relative">
-                      <Mail className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="email"
-                        value={studentEmail}
-                        onChange={(e) => setStudentEmail(e.target.value)}
-                        placeholder={`e.g. 26scl03@${ALLOWED_DOMAIN}`}
-                        className="w-full h-9 pl-8 pr-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition-colors cursor-pointer shadow-sm shadow-blue-500/25"
-                    >
-                      Verify Eligibility & Enter
-                    </button>
-                  </form>
-                )}
-              </div>
+             
             </div>
           </div>
 
